@@ -358,6 +358,11 @@
 
 
 
+
+
+
+
+
 import express from 'express';
 import mongoose from 'mongoose';
 import protect from '../middleware/authMiddleware.js';
@@ -374,108 +379,35 @@ const fullyPopulatePost = async (post) => {
     return post;
 };
 
-// A highly defensive helper function to safely populate posts from lean objects,
-// preventing crashes from corrupted data in the database.
-const safePopulatePosts = async (postsFromDb) => {
-    if (!postsFromDb || !Array.isArray(postsFromDb) || postsFromDb.length === 0) {
-        return [];
+// A helper to format a populated Mongoose post document into the shape the frontend expects.
+const formatPostForFrontend = (post) => {
+    if (!post || !post.user) {
+        // This can happen if the user who created the post has been deleted.
+        // We filter these out to avoid errors on the frontend.
+        return null;
     }
 
-    const userIds = new Set();
-    // Gather all unique and valid user IDs from posts and comments
-    postsFromDb.forEach(post => {
-        // FIX: Handle null/undefined entries in the posts array from the database
-        if (!post) return;
+    // post.toJSON() applies the transformations from the schema (e.g., adding 'id', 'timestamp')
+    const postObject = post.toJSON();
 
-        if (post.user && mongoose.Types.ObjectId.isValid(post.user)) {
-            userIds.add(post.user.toString());
-        }
-        if (Array.isArray(post.comments)) {
-            post.comments.forEach(comment => {
-                // FIX: Handle null/undefined entries in the comments array
-                if (!comment) return;
+    // The frontend expects an 'author' field, not a 'user' field.
+    postObject.author = post.user.toJSON();
+    delete postObject.user;
 
-                if (comment.user && mongoose.Types.ObjectId.isValid(comment.user)) {
-                    userIds.add(comment.user.toString());
-                }
-            });
-        }
-    });
+    // We also need to process the comments to ensure they have an 'author' field.
+    postObject.comments = post.comments
+        .map(comment => {
+            // Filter out comments where the author might have been deleted.
+            if (!comment.user) return null;
 
-    if (userIds.size === 0) {
-        return [];
-    }
+            const commentObject = comment.toJSON();
+            commentObject.author = comment.user.toJSON();
+            delete commentObject.user;
+            return commentObject;
+        })
+        .filter(Boolean); // Removes any null comments from the array.
 
-    // Fetch all required users in a single database call for efficiency
-    const users = await User.find({ _id: { $in: Array.from(userIds) } }).select('name username avatarUrl bio followers following blockedUsers').lean();
-    const userMap = new Map(users.map(user => [user._id.toString(), user]));
-
-    // Manually populate, shape, and filter posts to construct the final, safe response
-    const result = postsFromDb.map(post => {
-        if (!post || !post.user || !mongoose.Types.ObjectId.isValid(post.user)) {
-            return null; // Skip invalid posts
-        }
-
-        const authorData = userMap.get(post.user.toString());
-        if (!authorData) {
-            return null; // Skip posts where the author was deleted or not found
-        }
-        
-        // Shape the author object to match the frontend's `User` type
-        const author = {
-            id: authorData._id.toString(),
-            name: authorData.name,
-            username: authorData.username,
-            avatarUrl: authorData.avatarUrl,
-            bio: authorData.bio,
-            followers: (authorData.followers || []).map(id => id.toString()),
-            following: (authorData.following || []).map(id => id.toString()),
-            blockedUsers: (authorData.blockedUsers || []).map(id => id.toString()),
-        };
-
-        const populatedComments = (post.comments || [])
-            .map(comment => {
-                if (!comment || !comment.user || !mongoose.Types.ObjectId.isValid(comment.user)) {
-                    return null; // Skip invalid comments
-                }
-                const commentAuthorData = userMap.get(comment.user.toString());
-                if (!commentAuthorData) {
-                    return null; // Skip comments where the author was deleted
-                }
-                
-                // Shape the comment author object
-                const commentAuthor = {
-                     id: commentAuthorData._id.toString(),
-                     name: commentAuthorData.name,
-                     username: commentAuthorData.username,
-                     avatarUrl: commentAuthorData.avatarUrl,
-                     bio: commentAuthorData.bio,
-                     followers: (commentAuthorData.followers || []).map(id => id.toString()),
-                     following: (commentAuthorData.following || []).map(id => id.toString()),
-                     blockedUsers: (commentAuthorData.blockedUsers || []).map(id => id.toString()),
-                };
-
-                return {
-                    id: comment._id.toString(),
-                    author: commentAuthor, // FIX: Rename to `author` for frontend consistency
-                    text: comment.text,
-                    timestamp: comment.createdAt ? new Date(comment.createdAt).toISOString() : new Date().toISOString(),
-                };
-            })
-            .filter(Boolean); // Filter out any null comments
-
-        return {
-            id: post._id.toString(),
-            author: author, // FIX: Rename to `author` for frontend consistency
-            content: post.content,
-            imageUrl: post.imageUrl || undefined,
-            timestamp: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString(),
-            likes: (post.likes || []).map(id => id.toString()),
-            comments: populatedComments,
-        };
-    }).filter(Boolean); // Filter out any posts that ended up as null
-
-    return result;
+    return postObject;
 };
 
 
@@ -483,7 +415,7 @@ const safePopulatePosts = async (postsFromDb) => {
 // @desc    Get posts for the current user's feed
 router.get('/feed', protect, async (req, res) => {
     try {
-        const currentUser = await User.findById(req.user.id).lean();
+        const currentUser = await User.findById(req.user.id);
         if (!currentUser) {
             return res.status(401).json({ message: "User not found." });
         }
@@ -493,10 +425,15 @@ router.get('/feed', protect, async (req, res) => {
         const postsFromDb = await Post.find({ user: { $in: userIdsForFeed } })
             .sort({ createdAt: -1 })
             .limit(50)
-            .lean();
-        
-        const populatedPosts = await safePopulatePosts(postsFromDb);
-        res.json(populatedPosts);
+            .populate('user') // Populate the user (author) of the post
+            .populate('comments.user'); // Populate the user (author) of each comment
+
+        // Format each post for the frontend and filter out any invalid ones.
+        const formattedPosts = postsFromDb
+            .map(formatPostForFrontend)
+            .filter(Boolean);
+
+        res.json(formattedPosts);
 
     } catch (error) {
         console.error("Error in /api/posts/feed route:", error);
@@ -511,10 +448,14 @@ router.get('/', protect, async (req, res) => {
     try {
         const postsFromDb = await Post.find({})
             .sort({ createdAt: -1 })
-            .lean();
+            .populate('user')
+            .populate('comments.user');
         
-        const populatedPosts = await safePopulatePosts(postsFromDb);
-        res.json(populatedPosts);
+        const formattedPosts = postsFromDb
+            .map(formatPostForFrontend)
+            .filter(Boolean);
+
+        res.json(formattedPosts);
         
     } catch (error) {
         console.error("Discover posts route error:", error);
