@@ -1,3 +1,6 @@
+
+
+
 // export interface User {
 //   id: string;
 //   name: string;
@@ -75,6 +78,21 @@
 //   timestamp: string;
 // }
 
+// export interface Story {
+//   id: string;
+//   user: string; // User ID
+//   imageUrl?: string;
+//   text?: string;
+//   textPosition?: { x: number; y: number };
+//   imagePosition?: { x: number; y: number };
+//   createdAt: string;
+// }
+
+
+
+
+
+
 
 
 
@@ -148,19 +166,22 @@ export interface Notification {
   id: string;
   recipient: string; // User ID
   sender: User;
-  type: 'like' | 'comment' | 'follow' | 'message';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'story_like';
   read: boolean;
   postId?: string; // ID of the post that was liked/commented on
+  storyId?: string; // ID of the story that was liked
   commentId?: string;
   timestamp: string;
 }
 
 export interface Story {
   id: string;
+  author: User; 
   user: string; // User ID
   imageUrl?: string;
   text?: string;
   textPosition?: { x: number; y: number };
   imagePosition?: { x: number; y: number };
+  likes: string[]; // Array of user IDs
   createdAt: string;
 }

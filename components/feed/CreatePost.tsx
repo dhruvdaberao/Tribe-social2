@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 // import React, { useState, useRef, useEffect } from 'react';
 // import { User } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
@@ -7,9 +14,10 @@
 //   allUsers: User[];
 //   onAddPost: (content: string, imageUrl?: string) => void;
 //   isPosting: boolean;
+//   onOpenStoryCreator: () => void;
 // }
 
-// const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, onAddPost, isPosting }) => {
+// const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, onAddPost, isPosting, onOpenStoryCreator }) => {
 //   const [content, setContent] = useState('');
 //   const [imagePreview, setImagePreview] = useState<string | null>(null);
 //   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +92,17 @@
 //             </div>
 //         )}
 //       <div className={`flex items-start space-x-4 ${isPosting ? 'opacity-50 pointer-events-none' : ''}`}>
-//         <UserAvatar user={currentUser} className="w-12 h-12 flex-shrink-0" />
+//         <div className="relative flex-shrink-0">
+//             <UserAvatar user={currentUser} className="w-12 h-12" />
+//             <button
+//                 onClick={onOpenStoryCreator}
+//                 className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 border-2 border-surface hover:bg-blue-600 transition-transform hover:scale-110"
+//                 aria-label="Create a new story"
+//             >
+//                 <PlusIcon />
+//             </button>
+//         </div>
+
 //         <div className="w-full relative">
 //           <form onSubmit={handleSubmit} className="w-full">
 //             <textarea
@@ -171,6 +189,8 @@
 //     </svg>
 // );
 
+// const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>;
+
 // export default CreatePost;
 
 
@@ -179,27 +199,28 @@
 
 
 
-
-
-
 import React, { useState, useRef, useEffect } from 'react';
-import { User } from '../../types';
+import { User, Story } from '../../types';
 import UserAvatar from '../common/UserAvatar';
 
 interface CreatePostProps {
   currentUser: User;
   allUsers: User[];
+  myStories: Story[];
   onAddPost: (content: string, imageUrl?: string) => void;
   isPosting: boolean;
   onOpenStoryCreator: () => void;
+  onViewUserStories: (userId: string) => void;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, onAddPost, isPosting, onOpenStoryCreator }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStories, onAddPost, isPosting, onOpenStoryCreator, onViewUserStories }) => {
   const [content, setContent] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMentions, setShowMentions] = useState(false);
+
+  const hasStory = myStories.length > 0;
 
   const filteredUsers = allUsers.filter(user =>
     user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
@@ -270,10 +291,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, onAddPos
         )}
       <div className={`flex items-start space-x-4 ${isPosting ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="relative flex-shrink-0">
-            <UserAvatar user={currentUser} className="w-12 h-12" />
+            <button 
+              onClick={hasStory ? () => onViewUserStories(currentUser.id) : onOpenStoryCreator}
+              className={`w-12 h-12 rounded-full p-0.5 ${hasStory ? 'bg-accent' : 'bg-transparent'}`}
+            >
+              <UserAvatar user={currentUser} className="w-full h-full border-2 border-surface" />
+            </button>
             <button
                 onClick={onOpenStoryCreator}
-                className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 border-2 border-surface hover:bg-blue-600 transition-transform hover:scale-110"
+                className="absolute -bottom-1 -right-1 bg-accent text-accent-text rounded-full p-0.5 border-2 border-surface hover:bg-accent-hover transition-transform hover:scale-110"
                 aria-label="Create a new story"
             >
                 <PlusIcon />

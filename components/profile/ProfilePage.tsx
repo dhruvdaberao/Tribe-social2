@@ -1,5 +1,11 @@
 
 
+
+
+
+
+
+
 // // FIX: Imported `useRef` to resolve reference errors in the EditProfileModal component.
 // import React, { useState, useRef } from 'react';
 // import { Post, User, Tribe } from '../../types';
@@ -26,18 +32,20 @@
 //   onViewProfile: (user: User) => void;
 //   onUpdateUser: (updatedUser: Partial<User>) => void;
 //   onAddPost: (content: string, imageUrl?: string) => void;
+//   isPosting: boolean;
 //   onToggleFollow: (targetUserId: string) => void;
 //   onStartConversation: (user: User) => void;
 //   onNavigate: (item: NavItem) => void;
 //   onSharePost: (post: Post, destination: { type: 'tribe' | 'user', id: string }) => void;
+//   onOpenStoryCreator: () => void;
 // }
 
 // export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
 //     const { 
 //         user, allUsers, visibleUsers, allTribes, posts, currentUser, 
 //         onLikePost, onCommentPost, onDeletePost, onDeleteComment, 
-//         onViewProfile, onUpdateUser, onAddPost, onToggleFollow, 
-//         onStartConversation, onNavigate, onSharePost 
+//         onViewProfile, onUpdateUser, onAddPost, isPosting, onToggleFollow, 
+//         onStartConversation, onNavigate, onSharePost, onOpenStoryCreator
 //     } = props;
 //     const [isEditModalOpen, setEditModalOpen] = useState(false);
 //     const [followModal, setFollowModal] = useState<{isOpen: boolean, type: 'followers' | 'following', userIds: string[]}>({isOpen: false, type: 'followers', userIds: []});
@@ -116,7 +124,8 @@
 //         </div>
 //       </div>
       
-//       {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} onAddPost={onAddPost} isPosting={false} />}
+//       {/* FIX: Pass `isPosting` and `onOpenStoryCreator` to `CreatePost` to enable post loading state and story creation from the profile page. */}
+//       {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} />}
 
 //       <h2 className="text-xl font-bold text-primary my-6 font-display">{isOwnProfile ? "Your Posts" : `${user.name.split(' ')[0]}'s Posts`}</h2>
       
@@ -225,9 +234,10 @@
 
 
 
+
 // FIX: Imported `useRef` to resolve reference errors in the EditProfileModal component.
 import React, { useState, useRef } from 'react';
-import { Post, User, Tribe } from '../../types';
+import { Post, User, Tribe, Story } from '../../types';
 import type { NavItem } from '../../App';
 import PostCard from '../feed/PostCard';
 import CreatePost from '../feed/CreatePost';
@@ -257,6 +267,8 @@ interface ProfilePageProps {
   onNavigate: (item: NavItem) => void;
   onSharePost: (post: Post, destination: { type: 'tribe' | 'user', id: string }) => void;
   onOpenStoryCreator: () => void;
+  myStories: Story[];
+  onViewUserStories: (userId: string) => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
@@ -264,7 +276,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
         user, allUsers, visibleUsers, allTribes, posts, currentUser, 
         onLikePost, onCommentPost, onDeletePost, onDeleteComment, 
         onViewProfile, onUpdateUser, onAddPost, isPosting, onToggleFollow, 
-        onStartConversation, onNavigate, onSharePost, onOpenStoryCreator
+        onStartConversation, onNavigate, onSharePost, onOpenStoryCreator,
+        myStories, onViewUserStories
     } = props;
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [followModal, setFollowModal] = useState<{isOpen: boolean, type: 'followers' | 'following', userIds: string[]}>({isOpen: false, type: 'followers', userIds: []});
@@ -343,8 +356,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
         </div>
       </div>
       
-      {/* FIX: Pass `isPosting` and `onOpenStoryCreator` to `CreatePost` to enable post loading state and story creation from the profile page. */}
-      {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} />}
+{/* FIX: Pass `myStories` and `onViewUserStories` to `CreatePost` to satisfy its prop requirements. */}
+      {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} onViewUserStories={onViewUserStories} />}
 
       <h2 className="text-xl font-bold text-primary my-6 font-display">{isOwnProfile ? "Your Posts" : `${user.name.split(' ')[0]}'s Posts`}</h2>
       
