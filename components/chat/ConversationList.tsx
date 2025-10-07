@@ -1,3 +1,6 @@
+
+
+
 // import React from 'react';
 // import { Conversation, User } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
@@ -10,9 +13,10 @@
 //   activeConversationId?: string;
 //   onSelectConversation: (conversation: Conversation) => void;
 //   onNewMessage: () => void;
+//   unreadCounts: { [key: string]: number };
 // }
 
-// const ConversationList: React.FC<ConversationListProps> = ({ conversations, currentUser, chukUser, userMap, activeConversationId, onSelectConversation, onNewMessage }) => {
+// const ConversationList: React.FC<ConversationListProps> = ({ conversations, currentUser, chukUser, userMap, activeConversationId, onSelectConversation, onNewMessage, unreadCounts }) => {
 
 //   const chukConversation: Conversation = {
 //     id: chukUser.id,
@@ -38,6 +42,7 @@
 //               otherParticipant={chukUser}
 //               isActive={chukConversation.id === activeConversationId}
 //               onSelect={onSelectConversation}
+//               unreadCount={0}
 //           />
         
 //         {conversations.length === 0 && (
@@ -62,6 +67,7 @@
 //               otherParticipant={otherParticipant}
 //               isActive={conv.id === activeConversationId}
 //               onSelect={onSelectConversation}
+//               unreadCount={unreadCounts[otherParticipantId] || 0}
 //             />
 //           );
 //         })}
@@ -75,9 +81,10 @@
 //     otherParticipant: User;
 //     isActive: boolean;
 //     onSelect: (conv: Conversation) => void;
+//     unreadCount: number;
 // }
 
-// const ConversationItem: React.FC<ConversationItemProps> = ({ conversation, otherParticipant, isActive, onSelect }) => (
+// const ConversationItem: React.FC<ConversationItemProps> = ({ conversation, otherParticipant, isActive, onSelect, unreadCount }) => (
 //     <div
 //       onClick={() => onSelect(conversation)}
 //       className={`flex items-center p-4 cursor-pointer transition-colors border-b border-border ${
@@ -91,6 +98,11 @@
 //         <p className={`font-semibold text-primary`}>{otherParticipant.name}</p>
 //         <p className="text-sm text-secondary truncate">{conversation.lastMessage}</p>
 //       </div>
+//       {unreadCount > 0 && (
+//         <div className="ml-4 flex-shrink-0 w-6 h-6 bg-accent text-accent-text rounded-full flex items-center justify-center text-xs font-bold">
+//             {unreadCount}
+//         </div>
+//       )}
 //     </div>
 // )
 
@@ -101,12 +113,16 @@
 
 
 
+
+
+
 import React from 'react';
 import { Conversation, User } from '../../types';
 import UserAvatar from '../common/UserAvatar';
 
 interface ConversationListProps {
   conversations: Conversation[];
+  isLoading: boolean;
   currentUser: User;
   chukUser: User;
   userMap: Map<string, User>;
@@ -116,7 +132,7 @@ interface ConversationListProps {
   unreadCounts: { [key: string]: number };
 }
 
-const ConversationList: React.FC<ConversationListProps> = ({ conversations, currentUser, chukUser, userMap, activeConversationId, onSelectConversation, onNewMessage, unreadCounts }) => {
+const ConversationList: React.FC<ConversationListProps> = ({ conversations, isLoading, currentUser, chukUser, userMap, activeConversationId, onSelectConversation, onNewMessage, unreadCounts }) => {
 
   const chukConversation: Conversation = {
     id: chukUser.id,
@@ -145,32 +161,38 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, curr
               unreadCount={0}
           />
         
-        {conversations.length === 0 && (
+        {isLoading ? (
+            <div className="text-center p-8 text-secondary flex flex-col items-center">
+                <img src="/chuk.gif" alt="Loading..." className="w-16 h-16 mb-2" />
+                <p>Loading your chats...</p>
+            </div>
+        ) : conversations.length === 0 ? (
             <div className="text-center p-8 text-secondary">
                 <p>No user conversations yet.</p>
                 <button onClick={onNewMessage} className="text-sm text-accent font-semibold hover:underline mt-2">
                     Start a new chat!
                 </button>
             </div>
-        )}
-        {conversations.map(conv => {
-          const otherParticipantId = conv.participants.find(p => p.id !== currentUser.id)?.id;
-          if (!otherParticipantId) return null;
+        ) : (
+            conversations.map(conv => {
+              const otherParticipantId = conv.participants.find(p => p.id !== currentUser.id)?.id;
+              if (!otherParticipantId) return null;
 
-          const otherParticipant = userMap.get(otherParticipantId);
-          if (!otherParticipant) return null;
-          
-          return (
-            <ConversationItem
-              key={conv.id}
-              conversation={conv}
-              otherParticipant={otherParticipant}
-              isActive={conv.id === activeConversationId}
-              onSelect={onSelectConversation}
-              unreadCount={unreadCounts[otherParticipantId] || 0}
-            />
-          );
-        })}
+              const otherParticipant = userMap.get(otherParticipantId);
+              if (!otherParticipant) return null;
+              
+              return (
+                <ConversationItem
+                  key={conv.id}
+                  conversation={conv}
+                  otherParticipant={otherParticipant}
+                  isActive={conv.id === activeConversationId}
+                  onSelect={onSelectConversation}
+                  unreadCount={unreadCounts[otherParticipantId] || 0}
+                />
+              );
+            })
+        )}
       </div>
     </div>
   );

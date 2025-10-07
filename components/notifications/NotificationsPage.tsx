@@ -3,19 +3,20 @@
 
 
 
-
-
 // import React, { useEffect, useCallback } from 'react';
-// import { Notification, User } from '../../types';
+// import { Notification, User, Tribe } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
 // import * as api from '../../api.ts';
 // import { useSocket } from '../../contexts/SocketContext';
 
 // interface NotificationsPageProps {
 //   notifications: Notification[];
+//   allTribes: Tribe[];
 //   onViewProfile: (user: User) => void;
 //   onViewMessage: (user: User) => void;
 //   onViewPost: (postId: string) => void;
+//   onViewTribe: (tribe: Tribe) => void;
+//   onViewStory: (userId: string) => void;
 // }
 
 // const timeAgo = (dateString: string) => {
@@ -34,7 +35,7 @@
 //     return date.toLocaleDateString();
 // };
 
-// const NotificationItem: React.FC<{ notification: Notification; onViewProfile: (user: User) => void; onViewMessage: (user: User) => void; onViewPost: (postId: string) => void; }> = ({ notification, onViewProfile, onViewMessage, onViewPost }) => {
+// const NotificationItem: React.FC<{ notification: Notification; allTribes: Tribe[]; onViewProfile: (user: User) => void; onViewMessage: (user: User) => void; onViewPost: (postId: string) => void; onViewTribe: (tribe: any) => void; onViewStory: (userId: string) => void; }> = ({ notification, allTribes, onViewProfile, onViewMessage, onViewPost, onViewTribe, onViewStory }) => {
 //   const { sender, type, timestamp } = notification;
 
 //   const renderText = () => {
@@ -49,6 +50,9 @@
 //         return 'sent you a message.';
 //       case 'story_like':
 //         return 'liked your story.';
+//       case 'tribe_join':
+//         const tribe = allTribes.find(t => t.id === notification.tribeId);
+//         return `joined your tribe: ${tribe?.name || ''}`;
 //       default:
 //         return '';
 //     }
@@ -60,19 +64,34 @@
 //         case 'message': return 'View Message';
 //         case 'like': return 'View Post';
 //         case 'comment': return 'View Post';
-//         case 'story_like': return 'View Profile';
+//         case 'story_like': return 'View Story';
+//         case 'tribe_join': return 'View Tribe';
 //         default: return 'View Details';
 //     }
 //   };
   
 //   const handleClick = () => {
-//       if (type === 'follow' || type === 'story_like') {
-//           onViewProfile(sender);
-//       } else if (type === 'message') {
-//           onViewMessage(sender);
-//       } else if ((type === 'like' || type === 'comment') && notification.postId) {
-//           onViewPost(notification.postId);
-//       }
+//     switch (type) {
+//         case 'follow':
+//             onViewProfile(sender);
+//             break;
+//         case 'story_like':
+//             onViewStory(sender.id);
+//             break;
+//         case 'message':
+//             onViewMessage(sender);
+//             break;
+//         case 'like':
+//         case 'comment':
+//             if (notification.postId) onViewPost(notification.postId);
+//             break;
+//         case 'tribe_join':
+//             if (notification.tribeId) {
+//                 const tribe = allTribes.find(t => t.id === notification.tribeId);
+//                 if (tribe) onViewTribe(tribe);
+//             }
+//             break;
+//     }
 //   };
 
 //   const Icon = {
@@ -81,6 +100,7 @@
 //     follow: <FollowIcon />,
 //     message: <MessageIcon />,
 //     story_like: <StoryLikeIcon/>,
+//     tribe_join: <TribeIcon />,
 //   }[notification.type];
 
 //   return (
@@ -118,7 +138,7 @@
 //   );
 // };
 
-// const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, onViewProfile, onViewMessage, onViewPost }) => {
+// const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, allTribes, onViewProfile, onViewMessage, onViewPost, onViewTribe, onViewStory }) => {
 //   const { setNotifications } = useSocket();
   
 //   const markAsRead = useCallback(async () => {
@@ -148,10 +168,13 @@
 //           notifications.map(notification => (
 //             <NotificationItem 
 //                 key={notification.id} 
-//                 notification={notification} 
+//                 notification={notification}
+//                 allTribes={allTribes}
 //                 onViewProfile={onViewProfile} 
 //                 onViewMessage={onViewMessage}
 //                 onViewPost={onViewPost}
+//                 onViewTribe={onViewTribe}
+//                 onViewStory={onViewStory}
 //             />
 //           ))
 //         ) : (
@@ -171,8 +194,14 @@
 // const CommentIcon = () => <IconWrapper><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" /></svg></IconWrapper>;
 // const FollowIcon = () => <IconWrapper><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.99 9.99 0 0010 12a9.99 9.99 0 00-6.535 2.493z" /></svg></IconWrapper>;
 // const MessageIcon = () => <IconWrapper><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg></IconWrapper>;
+// const TribeIcon = () => <IconWrapper><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3.75 3.75 0 019 12a3.75 3.75 0 015.25 3.22c.034.166.052.338.052.512v3.223A4.5 4.5 0 018.25 18.75a4.5 4.5 0 01-1.887-1.124l-2.8-2.033a.75.75 0 00-1.28.638v2.873a.75.75 0 001.28.638l2.8-2.033a4.5 4.5 0 016.364-2.243" /></svg></IconWrapper>;
 
 // export default NotificationsPage;
+
+
+
+
+
 
 
 
@@ -321,22 +350,19 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, al
   
   const markAsRead = useCallback(async () => {
     try {
-        if (notifications.some(n => !n.read)) {
-            await api.markNotificationsRead();
-            setNotifications(prev => prev.map(n => ({...n, read: true})));
-        }
+        await api.markNotificationsRead();
+        setNotifications(prev => prev.map(n => ({...n, read: true})));
     } catch (error) {
         console.error("Failed to mark notifications as read", error);
     }
-  }, [notifications, setNotifications]);
+  }, [setNotifications]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Mark as read immediately if there are unread notifications
+    if (notifications.some(n => !n.read)) {
         markAsRead();
-    }, 2000); 
-
-    return () => clearTimeout(timer);
-  }, [markAsRead]);
+    }
+  }, [notifications, markAsRead]);
   
   return (
     <div className="max-w-3xl mx-auto">

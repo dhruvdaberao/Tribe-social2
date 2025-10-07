@@ -1,3 +1,6 @@
+
+
+
 // import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // import { Conversation, User, Message, Post } from '../../types';
 // import ConversationList from './ConversationList';
@@ -23,7 +26,7 @@
 //   const [isMessageAreaVisible, setMessageAreaVisible] = useState(false);
 //   const [isNewMessageModalOpen, setNewMessageModalOpen] = useState(false);
 //   const [isSending, setIsSending] = useState(false);
-//   const { socket, onlineUsers, clearUnreadMessages } = useSocket();
+//   const { socket, onlineUsers, clearUnreadMessages, unreadCounts } = useSocket();
 
 //   const userMap = useMemo(() => {
 //       const map = new Map(allUsers.map(user => [user.id, user]));
@@ -193,7 +196,7 @@
 //           isMessageAreaVisible ? '-translate-x-full' : 'translate-x-0'
 //         } md:translate-x-0`}
 //       >
-//         <ConversationList conversations={conversations} currentUser={currentUser} chukUser={chukUser} userMap={userMap} activeConversationId={activeConversation?.id} onSelectConversation={handleSelectConversation} onNewMessage={() => setNewMessageModalOpen(true)} />
+//         <ConversationList conversations={conversations} currentUser={currentUser} chukUser={chukUser} userMap={userMap} activeConversationId={activeConversation?.id} onSelectConversation={handleSelectConversation} onNewMessage={() => setNewMessageModalOpen(true)} unreadCounts={unreadCounts.messages} />
 //       </div>
       
 //       <div 
@@ -228,6 +231,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Conversation, User, Message, Post } from '../../types';
 import ConversationList from './ConversationList';
@@ -250,6 +254,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isMessageAreaVisible, setMessageAreaVisible] = useState(false);
   const [isNewMessageModalOpen, setNewMessageModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -262,6 +267,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
   }, [allUsers, chukUser]);
 
   const fetchConversations = useCallback(async () => {
+      setIsLoadingConversations(true);
       try {
         const { data } = await api.fetchConversations();
         setConversations(data);
@@ -269,6 +275,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
       } catch (error) {
         console.error("Failed to fetch conversations", error);
         return [];
+      } finally {
+        setIsLoadingConversations(false);
       }
   }, []);
 
@@ -423,7 +431,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
           isMessageAreaVisible ? '-translate-x-full' : 'translate-x-0'
         } md:translate-x-0`}
       >
-        <ConversationList conversations={conversations} currentUser={currentUser} chukUser={chukUser} userMap={userMap} activeConversationId={activeConversation?.id} onSelectConversation={handleSelectConversation} onNewMessage={() => setNewMessageModalOpen(true)} unreadCounts={unreadCounts.messages} />
+        <ConversationList conversations={conversations} isLoading={isLoadingConversations} currentUser={currentUser} chukUser={chukUser} userMap={userMap} activeConversationId={activeConversation?.id} onSelectConversation={handleSelectConversation} onNewMessage={() => setNewMessageModalOpen(true)} unreadCounts={unreadCounts.messages} />
       </div>
       
       <div 

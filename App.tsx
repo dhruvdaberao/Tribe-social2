@@ -1,10 +1,7 @@
 
 
 
-
-
-
-// import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 // import { useAuth } from './contexts/AuthContext';
 // import { useSocket } from './contexts/SocketContext';
 // import { User, Post, Tribe, TribeMessage, Notification as NotificationType, Comment, Story } from './types';
@@ -27,6 +24,7 @@
 // import StoryViewer from './components/stories/StoryViewer';
 // import StoryFeed from './components/stories/StoryFeed';
 // import { Toaster, toast } from './components/common/Toast';
+// import PostViewModal from './components/profile/PostViewModal';
 
 // export type NavItem = 'Home' | 'Discover' | 'Messages' | 'Tribes' | 'Notifications' | 'Profile' | 'Chuk' | 'TribeDetail' | 'Settings';
 
@@ -57,11 +55,13 @@
 //     const [isFetching, setIsFetching] = useState(false);
 //     const [isCreatingPost, setIsCreatingPost] = useState(false);
 //     const [isAllPostsLoaded, setIsAllPostsLoaded] = useState(false);
+//     const lastFetchTimestamp = useRef<number | null>(null);
 
 //     // Navigation & Modal State
 //     const [activeNavItem, setActiveNavItem] = useState<NavItem>('Home');
 //     const [viewedUser, setViewedUser] = useState<User | null>(null);
 //     const [viewedTribe, setViewedTribe] = useState<Tribe | null>(null);
+//     const [viewingPost, setViewingPost] = useState<Post | null>(null);
 //     const [editingTribe, setEditingTribe] = useState<Tribe | null>(null);
 //     const [chatTarget, setChatTarget] = useState<User | null>(null);
 //     const [isCreatingStory, setIsCreatingStory] = useState(false);
@@ -97,6 +97,9 @@
 //     }, []);
 
 //     const fetchData = useCallback(async () => {
+//         if (isDataLoaded && lastFetchTimestamp.current && (Date.now() - lastFetchTimestamp.current < 300000)) { // 5 min cache to prevent re-fetch
+//             return;
+//         }
 //         if (!currentUser) {
 //             setIsDataLoaded(false);
 //             return;
@@ -148,6 +151,7 @@
 //             setMyStories(myStoriesData);
 //             setFollowingUserStories(followingStoriesData);
 //             setIsDataLoaded(true);
+//             lastFetchTimestamp.current = Date.now();
 
 //         } catch (error) {
 //             console.error("A critical error occurred during data fetching: ", error);
@@ -155,7 +159,7 @@
 //         } finally {
 //             setIsFetching(false);
 //         }
-//     }, [currentUser, logout, populatePost, setNotifications]);
+//     }, [currentUser, logout, populatePost, setNotifications, isDataLoaded]);
     
 //     const fetchAllPostsForDiscover = useCallback(async () => {
 //       if (isAllPostsLoaded) return;
@@ -268,6 +272,7 @@
 //         setIsCreatingPost(true);
 //         try {
 //             await api.createPost({ content, imageUrl });
+//             toast.success("Post created successfully!");
 //         } catch (error) {
 //             console.error("Failed to add post:", error);
 //             toast.error("Could not create post. Please try again.");
@@ -315,6 +320,7 @@
 //         setPosts(prev => prev.filter(p => p.id !== postId));
 //         try {
 //             await api.deletePost(postId);
+//             toast.success("Post deleted.");
 //         } catch (error) {
 //             console.error("Failed to delete post:", error);
 //             toast.error("Could not delete post.");
@@ -372,14 +378,18 @@
 //                 return;
 //             }
 //         }
-//         if (post?.author) handleViewProfile(post.author);
-//         else toast.error("Could not find the post. It may have been deleted.");
+//         if (post) {
+//             setViewingPost(post);
+//         } else {
+//             toast.error("Could not find the post. It may have been deleted.");
+//         }
 //     };
 
 //     const handleUpdateUser = async (updatedUserData: Partial<User>) => {
 //         if (!currentUser) return;
 //         try {
 //             await api.updateProfile(updatedUserData);
+//             toast.success("Profile updated!");
 //         } catch (error) {
 //             console.error("Failed to update user:", error);
 //         }
@@ -462,6 +472,7 @@
 //         try {
 //             const { data: newTribe } = await api.createTribe({ name, description, avatarUrl });
 //             setTribes(prev => [{...newTribe, messages: []}, ...prev]);
+//             toast.success(`Tribe "${name}" created!`);
 //         } catch (error) {
 //             console.error("Failed to create tribe:", error);
 //         }
@@ -488,6 +499,7 @@
 //               setViewedTribe(prev => prev ? { ...prev, ...updatedTribeData } : null);
 //           }
 //           setEditingTribe(null);
+//           toast.success("Tribe details updated.");
 //       } catch (error) {
 //           console.error("Failed to edit tribe:", error);
 //       }
@@ -649,13 +661,12 @@
 //                 if (!viewedTribe) return <div className="text-center p-8">Tribe not found. Go back to discover more tribes.</div>;
 //                 return <TribeDetailPage tribe={viewedTribe} currentUser={currentUser} userMap={userMap} onSendMessage={handleSendTribeMessage} onDeleteMessage={handleDeleteTribeMessage} onDeleteTribe={handleDeleteTribe} onBack={() => setActiveNavItem('Tribes')} onViewProfile={handleViewProfile} onEditTribe={(tribe) => setEditingTribe(tribe)} onJoinToggle={handleJoinToggle} />;
 //             case 'Notifications':
-//                 return <NotificationsPage notifications={notifications} onViewProfile={handleViewProfile} onViewMessage={handleStartConversation} onViewPost={handleViewPost} />;
+//                 return <NotificationsPage notifications={notifications} allTribes={tribes} onViewProfile={handleViewProfile} onViewMessage={handleStartConversation} onViewPost={handleViewPost} onViewTribe={handleViewTribe} onViewStory={handleViewUserStories} />;
 //             case 'Profile':
 //                 if (!viewedUser || (currentUser.blockedUsers || []).includes(viewedUser.id) || (viewedUser.blockedUsers || []).includes(currentUser.id)) {
 //                      return <div className="text-center p-8">User not found or is blocked.</div>;
 //                 }
 //                 const userPosts = visiblePosts.filter(p => p.author.id === viewedUser.id);
-// // FIX: Pass `myStories` and `onViewUserStories` to the ProfilePage component to fix a missing props error on the CreatePost component within it.
 //                 return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} />;
 //             case 'Settings':
 //                  return <SettingsPage currentUser={currentUser} onLogout={logout} onDeleteAccount={handleDeleteAccount} onToggleBlock={handleToggleBlock} allUsers={users} onBack={() => handleSelectItem('Profile')} />;
@@ -683,11 +694,16 @@
 //             {editingTribe && <EditTribeModal tribe={editingTribe} onClose={() => setEditingTribe(null)} onSave={handleEditTribe} onDelete={handleDeleteTribe} />}
 //             {isCreatingStory && <StoryCreator onClose={() => setIsCreatingStory(false)} onCreate={handleCreateStory} />}
 //             {viewingUserStories && <StoryViewer userStories={viewingUserStories} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onClose={() => setViewingUserStories(null)} onDelete={handleDeleteStory} onLike={handleLikeStory} onSharePost={handleSharePost} />}
+//             {/* FIX: Corrected a typo in a prop name, ensuring the comment handler is passed correctly. */}
+//             {viewingPost && <PostViewModal post={viewingPost} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onLike={handleLikePost} onComment={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onSharePost={handleSharePost} onClose={() => setViewingPost(null)} />}
 //         </div>
 //     );
 // };
 
 // export default App;
+
+
+
 
 
 
@@ -875,6 +891,17 @@ const App: React.FC = () => {
         }
     }, [fetchData, isAuthLoading, currentUser]);
 
+    // Effect to join tribe rooms for real-time unread counts
+    useEffect(() => {
+        if (socket && tribes.length > 0 && currentUser) {
+            const myTribeIds = tribes.filter(t => t.members.includes(currentUser.id)).map(t => t.id);
+            myTribeIds.forEach(tribeId => {
+                socket.emit('joinRoom', `tribe-${tribeId}`);
+            });
+        }
+    }, [socket, tribes, currentUser]);
+
+
     useEffect(() => {
         if (!socket || !viewedTribe) return;
         const room = `tribe-${viewedTribe.id}`;
@@ -885,9 +912,19 @@ const App: React.FC = () => {
     useEffect(() => {
         if (!socket || !userMap.size) return;
         const handleNewPost = (post: any) => {
-            if (post.user.id === currentUser?.id && isCreatingPost) return;
             const populated = populatePost(post, userMap);
-            if (populated) setPosts(prev => [populated, ...prev].sort((a: Post, b: Post) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+            if (populated) {
+                // If it was an optimistic post, replace it. Otherwise, add it.
+                setPosts(prev => {
+                    const optimisticPostIndex = prev.findIndex(p => p.id === `temp-${post.tempId}`);
+                    if (optimisticPostIndex > -1) {
+                        const newPosts = [...prev];
+                        newPosts[optimisticPostIndex] = populated;
+                        return newPosts;
+                    }
+                    return [populated, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                });
+            }
         };
         const handlePostUpdated = (updatedPost: any) => {
             const populated = populatePost(updatedPost, userMap);
@@ -964,12 +1001,27 @@ const App: React.FC = () => {
     const handleAddPost = async (content: string, imageUrl?: string) => {
         if (!currentUser) return;
         setIsCreatingPost(true);
+        const tempId = Date.now().toString();
+        // Optimistic update
+        const tempPost: Post = {
+            id: `temp-${tempId}`,
+            author: currentUser,
+            content: content,
+            imageUrl: imageUrl,
+            timestamp: new Date().toISOString(),
+            likes: [],
+            comments: [],
+        };
+        setPosts(prev => [tempPost, ...prev]);
+
         try {
-            await api.createPost({ content, imageUrl });
+            await api.createPost({ content, imageUrl, tempId });
             toast.success("Post created successfully!");
         } catch (error) {
             console.error("Failed to add post:", error);
             toast.error("Could not create post. Please try again.");
+            // Revert optimistic update on failure
+            setPosts(prev => prev.filter(p => p.id !== `temp-${tempId}`));
         } finally {
             setIsCreatingPost(false);
         }
@@ -1361,7 +1413,8 @@ const App: React.FC = () => {
                      return <div className="text-center p-8">User not found or is blocked.</div>;
                 }
                 const userPosts = visiblePosts.filter(p => p.author.id === viewedUser.id);
-                return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} />;
+                const userHasStory = myStories.some(s => s.user === viewedUser.id) || followingUserStories.some(us => us.user.id === viewedUser.id);
+                return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} hasStory={userHasStory} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} />;
             case 'Settings':
                  return <SettingsPage currentUser={currentUser} onLogout={logout} onDeleteAccount={handleDeleteAccount} onToggleBlock={handleToggleBlock} allUsers={users} onBack={() => handleSelectItem('Profile')} />;
             default:
@@ -1388,7 +1441,6 @@ const App: React.FC = () => {
             {editingTribe && <EditTribeModal tribe={editingTribe} onClose={() => setEditingTribe(null)} onSave={handleEditTribe} onDelete={handleDeleteTribe} />}
             {isCreatingStory && <StoryCreator onClose={() => setIsCreatingStory(false)} onCreate={handleCreateStory} />}
             {viewingUserStories && <StoryViewer userStories={viewingUserStories} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onClose={() => setViewingUserStories(null)} onDelete={handleDeleteStory} onLike={handleLikeStory} onSharePost={handleSharePost} />}
-            {/* FIX: Corrected a typo in a prop name, ensuring the comment handler is passed correctly. */}
             {viewingPost && <PostViewModal post={viewingPost} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onLike={handleLikePost} onComment={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onSharePost={handleSharePost} onClose={() => setViewingPost(null)} />}
         </div>
     );
