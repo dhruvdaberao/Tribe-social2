@@ -1,5 +1,13 @@
 
 
+
+
+
+
+
+
+
+
 // import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 // import { io, Socket } from 'socket.io-client';
 // import { useAuth } from './AuthContext';
@@ -7,10 +15,14 @@
 // import { toast } from '../components/common/Toast';
 
 // // Hardcoded the backend URL to remove the dependency on the problematic config file.
-// const SOCKET_URL = 'https://tribe-social-2.onrender.com';
+// const SOCKET_URL = 'https://tribe-social2.onrender.com';
 
 // // FIX: Added typed interfaces for socket events to resolve '.on' and '.off' errors.
+// // FIX: Added 'connect' to ServerToClientEvents to handle the socket connection event.
+// // FIX: Added a string index signature to satisfy the Socket type constraint.
 // interface ServerToClientEvents {
+//   [key: string]: (...args: any[]) => void;
+//   connect: () => void;
 //   getOnlineUsers: (users: string[]) => void;
 //   newNotification: (notification: Notification) => void;
 //   newMessage: (message: Message) => void;
@@ -25,7 +37,9 @@
 //   userStoppedTyping: (data: { userName: string; userId: string }) => void;
 // }
 
+// // FIX: Added a string index signature to satisfy the Socket type constraint.
 // interface ClientToServerEvents {
+//   [key: string]: (...args: any[]) => void;
 //   joinRoom: (roomName: string) => void;
 //   leaveRoom: (roomName: string) => void;
 //   typing: (data: { roomId: string; userName: string; userId: string }) => void;
@@ -59,8 +73,8 @@
 //   return context;
 // };
 
-// // FIX: Refactored from React.FC to a standard function component to fix children prop error.
-// export function SocketProvider({ children }: { children: ReactNode }) {
+// // FIX: Refactored from a function declaration to a const component with React.FC to address a children prop type error.
+// export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 //   const { currentUser } = useAuth();
 //   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
 //   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -73,8 +87,8 @@
 
 //   useEffect(() => {
 //     if (currentUser) {
-//       // FIX: Changed 'query' to 'auth' for socket.io-client v3+ to fix connection error.
-//       const newSocket = io(SOCKET_URL, {
+//       // FIX: Explicitly typed the socket instance to resolve a TypeScript generic inference issue.
+//       const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(SOCKET_URL, {
 //         auth: { userId: currentUser.id },
 //         withCredentials: true,
 //       });
@@ -168,11 +182,7 @@
 //       {children}
 //     </SocketContext.Provider>
 //   );
-// }
-
-
-
-
+// };
 
 
 
@@ -232,6 +242,7 @@ interface SocketContextType {
   };
   clearUnreadMessages: (partnerId: string) => void;
   clearUnreadTribe: (tribeId: string) => void;
+  setActiveChatPartnerId: (partnerId: string | null) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -250,6 +261,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activeChatPartnerId, setActiveChatPartnerId] = useState<string | null>(null);
   
   const [unreadCounts, setUnreadCounts] = useState<{
     messages: { [key: string]: number };
@@ -278,7 +290,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, [currentUser]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !currentUser) return;
     
     socket.on('connect', () => {
       console.log('Socket connected:', socket.id);
@@ -296,6 +308,11 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     socket.on('newMessage', (message: Message) => {
+        // Don't create notification if user is sending the message or if the chat is already open
+        if (message.senderId === currentUser.id || message.senderId === activeChatPartnerId) {
+            return;
+        }
+
          setUnreadCounts(prev => ({
             ...prev,
             messages: {
@@ -324,7 +341,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       socket.off('newMessage');
       socket.off('newTribeMessage');
     };
-  }, [socket, currentUser]);
+  }, [socket, currentUser, activeChatPartnerId]);
 
   const clearUnreadMessages = useCallback((partnerId: string) => {
     setUnreadCounts(prev => {
@@ -349,7 +366,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
   return (
-    <SocketContext.Provider value={{ socket, onlineUsers, notifications, setNotifications, unreadMessageCount, unreadTribeCount, unreadNotificationCount, unreadCounts, clearUnreadMessages, clearUnreadTribe }}>
+    <SocketContext.Provider value={{ socket, onlineUsers, notifications, setNotifications, unreadMessageCount, unreadTribeCount, unreadNotificationCount, unreadCounts, clearUnreadMessages, clearUnreadTribe, setActiveChatPartnerId }}>
       {children}
     </SocketContext.Provider>
   );

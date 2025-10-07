@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 // import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // import { Conversation, User, Message, Post } from '../../types';
 // import ConversationList from './ConversationList';
@@ -23,6 +27,7 @@
 //   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
 //   const [messages, setMessages] = useState<Message[]>([]);
 //   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+//   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
 //   const [isMessageAreaVisible, setMessageAreaVisible] = useState(false);
 //   const [isNewMessageModalOpen, setNewMessageModalOpen] = useState(false);
 //   const [isSending, setIsSending] = useState(false);
@@ -35,6 +40,7 @@
 //   }, [allUsers, chukUser]);
 
 //   const fetchConversations = useCallback(async () => {
+//       setIsLoadingConversations(true);
 //       try {
 //         const { data } = await api.fetchConversations();
 //         setConversations(data);
@@ -42,6 +48,8 @@
 //       } catch (error) {
 //         console.error("Failed to fetch conversations", error);
 //         return [];
+//       } finally {
+//         setIsLoadingConversations(false);
 //       }
 //   }, []);
 
@@ -196,7 +204,7 @@
 //           isMessageAreaVisible ? '-translate-x-full' : 'translate-x-0'
 //         } md:translate-x-0`}
 //       >
-//         <ConversationList conversations={conversations} currentUser={currentUser} chukUser={chukUser} userMap={userMap} activeConversationId={activeConversation?.id} onSelectConversation={handleSelectConversation} onNewMessage={() => setNewMessageModalOpen(true)} unreadCounts={unreadCounts.messages} />
+//         <ConversationList conversations={conversations} isLoading={isLoadingConversations} currentUser={currentUser} chukUser={chukUser} userMap={userMap} activeConversationId={activeConversation?.id} onSelectConversation={handleSelectConversation} onNewMessage={() => setNewMessageModalOpen(true)} unreadCounts={unreadCounts.messages} />
 //       </div>
       
 //       <div 
@@ -228,10 +236,6 @@
 
 
 
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Conversation, User, Message, Post } from '../../types';
 import ConversationList from './ConversationList';
@@ -258,7 +262,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
   const [isMessageAreaVisible, setMessageAreaVisible] = useState(false);
   const [isNewMessageModalOpen, setNewMessageModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const { socket, onlineUsers, clearUnreadMessages, unreadCounts } = useSocket();
+  const { socket, onlineUsers, clearUnreadMessages, unreadCounts, setActiveChatPartnerId } = useSocket();
 
   const userMap = useMemo(() => {
       const map = new Map(allUsers.map(user => [user.id, user]));
@@ -328,6 +332,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
         return;
     }
     
+    setActiveChatPartnerId(otherUserId);
     clearUnreadMessages(otherUserId);
     socket?.emit('joinRoom', `dm-${[currentUser.id, otherUserId].sort().join('-')}`);
 
@@ -348,7 +353,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
     } finally {
         setIsLoadingMessages(false);
     }
-  }, [currentUser.id, currentUser.name, chukUser.id, socket, clearUnreadMessages]);
+  }, [currentUser.id, currentUser.name, chukUser.id, socket, clearUnreadMessages, setActiveChatPartnerId]);
   
   const handleStartNewConversation = useCallback((targetUser: User) => {
     if (targetUser.id === chukUser.id) {
@@ -379,6 +384,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
       const otherUserId = activeConversation.participants.find(p => p.id !== currentUser.id)?.id;
       if (otherUserId) socket?.emit('leaveRoom', `dm-${[currentUser.id, otherUserId].sort().join('-')}`);
     }
+    setActiveChatPartnerId(null);
     setActiveConversation(null);
     setMessageAreaVisible(false);
   };
