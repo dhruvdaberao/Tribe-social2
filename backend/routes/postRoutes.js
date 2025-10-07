@@ -349,6 +349,7 @@
 
 
 import express from 'express';
+import mongoose from 'mongoose';
 import protect from '../middleware/authMiddleware.js';
 import Post from '../models/postModel.js';
 import User from '../models/userModel.js';
@@ -363,25 +364,35 @@ const fullyPopulatePost = async (post) => {
     return post;
 };
 
-// A helper function to safely populate posts from lean objects
+// A helper function to safely populate posts from lean objects, preventing crashes from corrupted data.
 const safePopulatePosts = async (postsFromDb) => {
     if (!postsFromDb || postsFromDb.length === 0) {
         return [];
     }
     
-    // Gather all unique user IDs from posts and comments
+    // Gather all unique and valid user IDs from posts and comments
     const userIds = new Set();
     postsFromDb.forEach(post => {
-        if (post.user) userIds.add(post.user.toString());
-        (post.comments || []).forEach(comment => {
-            if (comment.user) userIds.add(comment.user.toString());
-        });
+        if (post && post.user && mongoose.Types.ObjectId.isValid(post.user)) {
+            userIds.add(post.user.toString());
+        }
+        if (post && Array.isArray(post.comments)) {
+            post.comments.forEach(comment => {
+                if (comment && comment.user && mongoose.Types.ObjectId.isValid(comment.user)) {
+                    userIds.add(comment.user.toString());
+                }
+            });
+        }
     });
 
-    // Fetch all required users in one go
+    if (userIds.size === 0) {
+        return []; // No valid users found, therefore no valid posts to return
+    }
+
+    // Fetch all required users in a single database call
     const users = await User.find({ _id: { $in: Array.from(userIds) } }).select('name username avatarUrl').lean();
 
-    // Create a user map for quick lookup
+    // Create a map for efficient user lookup
     const userMap = new Map(users.map(user => [user._id.toString(), {
         id: user._id.toString(),
         name: user.name,
@@ -389,42 +400,50 @@ const safePopulatePosts = async (postsFromDb) => {
         avatarUrl: user.avatarUrl
     }]));
 
-    // Manually populate and filter posts to create the final response
+    // Manually populate and filter posts to construct the final, safe response
     return postsFromDb.map(post => {
         try {
-            // FIX: Add guard clause to prevent crash on posts with missing user reference.
-            if (!post.user) {
-                console.warn(`Skipping post with null user reference: ${post._id}`);
+            // Skip any post that is not a valid object or lacks a valid user reference
+            if (!post || !post.user || !mongoose.Types.ObjectId.isValid(post.user)) {
                 return null;
             }
+            
             const author = userMap.get(post.user.toString());
-            if (!author) return null;
+            // Skip post if its author has been deleted or not found
+            if (!author) {
+                return null; 
+            }
 
             const populatedComments = (post.comments || []).map(comment => {
-                const commentAuthor = comment.user ? userMap.get(comment.user.toString()) : null;
-                if (!commentAuthor) return null;
+                // Skip invalid comments or those with invalid user references
+                if (!comment || !comment.user || !mongoose.Types.ObjectId.isValid(comment.user)) {
+                    return null;
+                }
+                const commentAuthor = userMap.get(comment.user.toString());
+                if (!commentAuthor) return null; // Skip comment if author is deleted
+                
                 return {
-                    id: comment._id.toString(),
+                    id: comment._id ? comment._id.toString() : `temp-${Date.now()}`,
                     user: commentAuthor,
-                    text: comment.text,
+                    text: comment.text || '',
                     timestamp: comment.createdAt ? comment.createdAt.toISOString() : new Date(0).toISOString()
                 };
-            }).filter(Boolean);
+            }).filter(Boolean); // Filter out any null comments
 
             return {
                 id: post._id.toString(),
                 user: author,
-                content: post.content,
-                imageUrl: post.imageUrl,
+                content: post.content || '',
+                imageUrl: post.imageUrl || undefined,
                 timestamp: post.createdAt ? post.createdAt.toISOString() : new Date(0).toISOString(),
-                likes: (post.likes || []).map(id => id.toString()),
+                likes: (post.likes || []).filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => id.toString()),
                 comments: populatedComments
             };
         } catch(e) {
-            console.error(`Failed to process post ${post._id}:`, e);
-            return null; // Skip malformed post
+            console.error(`Critical error processing post ${post?._id}. Skipping.`, e);
+            return null; // Skip any post that causes an unexpected error
         }
-    }).filter(Boolean);
+    }).filter(Boolean); // Filter out any null posts
 };
 
 
