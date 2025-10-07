@@ -364,21 +364,28 @@ const fullyPopulatePost = async (post) => {
     return post;
 };
 
-// A helper function to safely populate posts from lean objects, preventing crashes from corrupted data.
+// A highly defensive helper function to safely populate posts from lean objects,
+// preventing crashes from corrupted data in the database.
 const safePopulatePosts = async (postsFromDb) => {
-    if (!postsFromDb || postsFromDb.length === 0) {
+    if (!postsFromDb || !Array.isArray(postsFromDb) || postsFromDb.length === 0) {
         return [];
     }
-    
-    // Gather all unique and valid user IDs from posts and comments
+
     const userIds = new Set();
+    // Gather all unique and valid user IDs from posts and comments
     postsFromDb.forEach(post => {
-        if (post && post.user && mongoose.Types.ObjectId.isValid(post.user)) {
+        // FIX: Handle null/undefined entries in the posts array from the database
+        if (!post) return;
+
+        if (post.user && mongoose.Types.ObjectId.isValid(post.user)) {
             userIds.add(post.user.toString());
         }
-        if (post && Array.isArray(post.comments)) {
+        if (Array.isArray(post.comments)) {
             post.comments.forEach(comment => {
-                if (comment && comment.user && mongoose.Types.ObjectId.isValid(comment.user)) {
+                // FIX: Handle null/undefined entries in the comments array
+                if (!comment) return;
+
+                if (comment.user && mongoose.Types.ObjectId.isValid(comment.user)) {
                     userIds.add(comment.user.toString());
                 }
             });
@@ -386,64 +393,79 @@ const safePopulatePosts = async (postsFromDb) => {
     });
 
     if (userIds.size === 0) {
-        return []; // No valid users found, therefore no valid posts to return
+        return [];
     }
 
-    // Fetch all required users in a single database call
-    const users = await User.find({ _id: { $in: Array.from(userIds) } }).select('name username avatarUrl').lean();
+    // Fetch all required users in a single database call for efficiency
+    const users = await User.find({ _id: { $in: Array.from(userIds) } }).select('name username avatarUrl bio followers following blockedUsers').lean();
+    const userMap = new Map(users.map(user => [user._id.toString(), user]));
 
-    // Create a map for efficient user lookup
-    const userMap = new Map(users.map(user => [user._id.toString(), {
-        id: user._id.toString(),
-        name: user.name,
-        username: user.username,
-        avatarUrl: user.avatarUrl
-    }]));
-
-    // Manually populate and filter posts to construct the final, safe response
-    return postsFromDb.map(post => {
-        try {
-            // Skip any post that is not a valid object or lacks a valid user reference
-            if (!post || !post.user || !mongoose.Types.ObjectId.isValid(post.user)) {
-                return null;
-            }
-            
-            const author = userMap.get(post.user.toString());
-            // Skip post if its author has been deleted or not found
-            if (!author) {
-                return null; 
-            }
-
-            const populatedComments = (post.comments || []).map(comment => {
-                // Skip invalid comments or those with invalid user references
-                if (!comment || !comment.user || !mongoose.Types.ObjectId.isValid(comment.user)) {
-                    return null;
-                }
-                const commentAuthor = userMap.get(comment.user.toString());
-                if (!commentAuthor) return null; // Skip comment if author is deleted
-                
-                return {
-                    id: comment._id ? comment._id.toString() : `temp-${Date.now()}`,
-                    user: commentAuthor,
-                    text: comment.text || '',
-                    timestamp: comment.createdAt ? comment.createdAt.toISOString() : new Date(0).toISOString()
-                };
-            }).filter(Boolean); // Filter out any null comments
-
-            return {
-                id: post._id.toString(),
-                user: author,
-                content: post.content || '',
-                imageUrl: post.imageUrl || undefined,
-                timestamp: post.createdAt ? post.createdAt.toISOString() : new Date(0).toISOString(),
-                likes: (post.likes || []).filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => id.toString()),
-                comments: populatedComments
-            };
-        } catch(e) {
-            console.error(`Critical error processing post ${post?._id}. Skipping.`, e);
-            return null; // Skip any post that causes an unexpected error
+    // Manually populate, shape, and filter posts to construct the final, safe response
+    const result = postsFromDb.map(post => {
+        if (!post || !post.user || !mongoose.Types.ObjectId.isValid(post.user)) {
+            return null; // Skip invalid posts
         }
-    }).filter(Boolean); // Filter out any null posts
+
+        const authorData = userMap.get(post.user.toString());
+        if (!authorData) {
+            return null; // Skip posts where the author was deleted or not found
+        }
+        
+        // Shape the author object to match the frontend's `User` type
+        const author = {
+            id: authorData._id.toString(),
+            name: authorData.name,
+            username: authorData.username,
+            avatarUrl: authorData.avatarUrl,
+            bio: authorData.bio,
+            followers: (authorData.followers || []).map(id => id.toString()),
+            following: (authorData.following || []).map(id => id.toString()),
+            blockedUsers: (authorData.blockedUsers || []).map(id => id.toString()),
+        };
+
+        const populatedComments = (post.comments || [])
+            .map(comment => {
+                if (!comment || !comment.user || !mongoose.Types.ObjectId.isValid(comment.user)) {
+                    return null; // Skip invalid comments
+                }
+                const commentAuthorData = userMap.get(comment.user.toString());
+                if (!commentAuthorData) {
+                    return null; // Skip comments where the author was deleted
+                }
+                
+                // Shape the comment author object
+                const commentAuthor = {
+                     id: commentAuthorData._id.toString(),
+                     name: commentAuthorData.name,
+                     username: commentAuthorData.username,
+                     avatarUrl: commentAuthorData.avatarUrl,
+                     bio: commentAuthorData.bio,
+                     followers: (commentAuthorData.followers || []).map(id => id.toString()),
+                     following: (commentAuthorData.following || []).map(id => id.toString()),
+                     blockedUsers: (commentAuthorData.blockedUsers || []).map(id => id.toString()),
+                };
+
+                return {
+                    id: comment._id.toString(),
+                    author: commentAuthor, // FIX: Rename to `author` for frontend consistency
+                    text: comment.text,
+                    timestamp: comment.createdAt ? new Date(comment.createdAt).toISOString() : new Date().toISOString(),
+                };
+            })
+            .filter(Boolean); // Filter out any null comments
+
+        return {
+            id: post._id.toString(),
+            author: author, // FIX: Rename to `author` for frontend consistency
+            content: post.content,
+            imageUrl: post.imageUrl || undefined,
+            timestamp: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString(),
+            likes: (post.likes || []).map(id => id.toString()),
+            comments: populatedComments,
+        };
+    }).filter(Boolean); // Filter out any posts that ended up as null
+
+    return result;
 };
 
 
@@ -522,10 +544,7 @@ router.post('/', protect, async (req, res) => {
         });
 
         let createdPost = await post.save();
-        createdPost = await createdPost.populate({ 
-            path: 'user', 
-            select: 'name username avatarUrl' 
-        });
+        createdPost = await fullyPopulatePost(createdPost);
         
         req.io.emit('newPost', createdPost);
         res.status(201).json(createdPost);
