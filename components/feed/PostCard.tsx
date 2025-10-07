@@ -183,7 +183,7 @@
 //         </div>
 //       )}
 //       {post.imageUrl && (
-//         <div className="max-h-[450px] overflow-hidden bg-background">
+//         <div className="aspect-[4/5] max-h-[520px] overflow-hidden bg-background">
 //           <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover" />
 //         </div>
 //       )}
@@ -315,8 +315,6 @@
 
 
 // export default PostCard;
-
-
 
 
 
@@ -508,8 +506,8 @@ const PostCard: React.FC<PostCardProps> = (props) => {
         </div>
       )}
       {post.imageUrl && (
-        <div className="aspect-[4/5] max-h-[520px] overflow-hidden bg-background">
-          <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover" />
+        <div className="max-h-[60vh] overflow-hidden bg-black flex items-center justify-center">
+          <img src={post.imageUrl} alt="Post content" className="w-full h-auto max-h-[60vh] object-contain" />
         </div>
       )}
 

@@ -1,4 +1,9 @@
 
+
+
+
+
+
 // import axios from 'axios';
 
 // // The backend URL is now hardcoded here to prevent module loading failures
@@ -64,6 +69,8 @@
 
 
 
+
+
 import axios from 'axios';
 
 // The backend URL is now hardcoded here to prevent module loading failures
@@ -123,3 +130,8 @@ export const generateAiChat = (promptData: { prompt: string }) => API.post('/ai/
 // Notifications
 export const fetchNotifications = () => API.get('/notifications');
 export const markNotificationsRead = () => API.put('/notifications/read');
+
+// Stories
+export const createStory = (storyData: any) => API.post('/stories', storyData);
+export const fetchMyStories = () => API.get('/stories/my-stories');
+export const deleteStory = (id: string) => API.delete(`/stories/${id}`);
