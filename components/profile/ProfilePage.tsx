@@ -2,6 +2,9 @@
 
 
 
+
+
+
 // // FIX: Imported `useRef` to resolve reference errors in the EditProfileModal component.
 // import React, { useState, useRef } from 'react';
 // import { Post, User, Tribe } from '../../types';
@@ -68,13 +71,14 @@
 //         <div className="p-4 md:p-6 relative">
 //             <div className="flex flex-col sm:flex-row justify-between items-start">
 //                 <div className="sm:-mt-20 -mt-16 flex-shrink-0">
-//                   <UserAvatar user={user} className="w-28 h-28 md:w-36 md:h-36 border-4 border-primary dark:border-surface" />
+//                   <UserAvatar user={user} className="w-28 h-28 md:w-36 md:h-36 border-4 border-background" />
 //                 </div>
                 
 //                 <div className="w-full sm:w-auto pt-2 sm:pt-4 flex items-center space-x-2">
 //                     {isOwnProfile ? (
 //                         <>
-//                             <button onClick={() => onNavigate('Settings')} className="w-full sm:w-auto font-semibold p-2.5 rounded-lg transition-colors bg-surface text-primary border border-border hover:bg-background" aria-label="Settings">
+//                             <button onClick={() => onNavigate('Settings')} className="w-full sm:w-auto font-semibold px-4 py-2 rounded-lg transition-colors bg-surface text-primary border border-border hover:bg-background flex items-center space-x-2">
+//                                 <span>Settings</span>
 //                                 <SettingsIcon />
 //                             </button>
 //                             <button onClick={() => setEditModalOpen(true)} className="w-full sm:w-auto bg-accent text-accent-text font-semibold px-6 py-2 rounded-lg hover:bg-accent-hover transition-colors">
@@ -225,10 +229,6 @@
 
 
 
-
-
-
-
 // FIX: Imported `useRef` to resolve reference errors in the EditProfileModal component.
 import React, { useState, useRef } from 'react';
 import { Post, User, Tribe } from '../../types';
@@ -350,7 +350,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
       <h2 className="text-xl font-bold text-primary my-6 font-display">{isOwnProfile ? "Your Posts" : `${user.name.split(' ')[0]}'s Posts`}</h2>
       
       {posts.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-1 md:gap-2">
+        <div className="grid grid-cols-3 gap-1 md:gap-2">
             {posts.map(post => (
                 <PostGridItem key={post.id} post={post} onClick={() => setViewingPost(post)} />
             ))}

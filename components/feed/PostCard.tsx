@@ -1,4 +1,8 @@
-// import React, { useState, useMemo } from 'react';
+
+
+
+
+// import React, { useState, useMemo, useRef, useEffect } from 'react';
 // import { Post, User, Tribe, Comment } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
 // import ShareModal from '../common/ShareModal';
@@ -46,6 +50,24 @@
 //   const [optionsOpen, setOptionsOpen] = useState(false);
 //   const [isAnimating, setIsAnimating] = useState(false);
 //   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+//   const [isExpanded, setIsExpanded] = useState(false);
+//   const [isTruncated, setIsTruncated] = useState(false);
+//   const contentRef = useRef<HTMLParagraphElement>(null);
+
+//   useEffect(() => {
+//     // Reset expansion state when the post changes
+//     setIsExpanded(false);
+//   }, [post.id]);
+
+//   useEffect(() => {
+//     const element = contentRef.current;
+//     if (element) {
+//       // Check if the content is overflowing its container, only if not expanded
+//       const isContentOverflowing = !isExpanded && element.scrollHeight > element.clientHeight;
+//       setIsTruncated(isContentOverflowing);
+//     }
+//   }, [post.content, isExpanded]);
+
 
 //   const isLiked = post.likes.includes(currentUser.id);
 //   const isOwnPost = post.author.id === currentUser.id;
@@ -148,8 +170,23 @@
 //       </div>
 
 //       {/* Post Content */}
-//       <p className="px-4 pb-4 text-primary whitespace-pre-wrap">{post.content}</p>
-//       {post.imageUrl && <img src={post.imageUrl} alt="Post content" className="w-full" />}
+//       {post.content && (
+//         <div className="px-4 pb-4">
+//             <p ref={contentRef} className={`text-primary whitespace-pre-wrap ${!isExpanded ? (post.imageUrl ? 'line-clamp-2' : 'line-clamp-6') : ''}`}>
+//                 {post.content}
+//             </p>
+//             {isTruncated && !isExpanded && (
+//                 <button onClick={() => setIsExpanded(true)} className="text-accent font-semibold text-sm hover:underline mt-1">
+//                     ...Show more
+//                 </button>
+//             )}
+//         </div>
+//       )}
+//       {post.imageUrl && (
+//         <div className="max-h-[450px] overflow-hidden bg-background">
+//           <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover" />
+//         </div>
+//       )}
 
 //       {/* Post Actions */}
 //       <div className="flex justify-between items-center px-4 py-2 border-t border-b border-border text-secondary text-sm">
@@ -278,6 +315,9 @@
 
 
 // export default PostCard;
+
+
+
 
 
 
@@ -468,7 +508,7 @@ const PostCard: React.FC<PostCardProps> = (props) => {
         </div>
       )}
       {post.imageUrl && (
-        <div className="max-h-[450px] overflow-hidden bg-background">
+        <div className="aspect-[4/5] max-h-[520px] overflow-hidden bg-background">
           <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover" />
         </div>
       )}

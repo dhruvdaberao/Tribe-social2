@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 // import React from 'react';
 // import { useTheme } from '../../contexts/ThemeContext';
 // import { User } from '../../types';
@@ -74,44 +81,45 @@
 //     <>
 //       {/* Top Header */}
 //       <header className="fixed top-0 left-0 right-0 h-16 bg-accent shadow-md z-50 flex items-center justify-between px-4 md:px-6">
-//         <div 
-//           className="flex items-center space-x-3 cursor-pointer flex-shrink-0"
-//           onClick={() => onSelectItem('Home')}
-//         >
-//           <img src="/tribe.png" alt="Tribe Logo" className="w-10 h-10" />
-//           <span className="text-2xl font-bold font-display text-accent-text inline">Tribe</span>
+//         {/* Left Side: Logo & Desktop Nav */}
+//         <div className="flex items-center space-x-6">
+//             <div 
+//               className="flex items-center space-x-3 cursor-pointer"
+//               onClick={() => onSelectItem('Home')}
+//             >
+//               <img src="/tribe.png" alt="Tribe Logo" className="w-10 h-10 flex-shrink-0" />
+//               <span className="text-2xl font-bold font-display text-accent-text sm:inline">Tribe</span>
+//             </div>
+//             <nav className="hidden md:flex items-center space-x-2">
+//                {mainNavItems.map(item => (
+//                   <DesktopNavLink key={item.name} item={item} />
+//                ))}
+//             </nav>
 //         </div>
 
-//         <nav className="hidden md:flex items-center space-x-2 absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2">
-//            {mainNavItems.map(item => (
-//               <DesktopNavLink key={item.name} item={item} />
-//            ))}
-//         </nav>
-
-//         <div className="flex items-center space-x-2 flex-shrink-0">
+//         {/* Right Side: Controls */}
+//         <div className="flex items-center space-x-2">
 //             <button
 //               onClick={toggleTheme}
-//               className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2"
+//               className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2 flex-shrink-0"
 //               aria-label="Toggle theme"
 //             >
 //               {theme === 'light' ? <MoonIcon /> : <SunIcon />}
 //             </button>
 //             <button
 //               onClick={() => onSelectItem('Chuk')}
-//               className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2"
+//               className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2 flex-shrink-0"
 //               aria-label="Open Chuk AI Assistant"
 //             >
 //                 <ChukIcon />
 //             </button>
-//             <div className="flex items-center space-x-3">
-//                 <button onClick={() => onSelectItem('Profile')} aria-label="View Profile" className="rounded-full border-2 border-surface hover:border-primary transition-colors">
-//                    <UserAvatar user={currentUser} className="w-10 h-10" />
-//                 </button>
-//                 <div className="hidden lg:block text-right">
-//                     <p className="font-semibold text-accent-text text-sm leading-tight">{currentUser?.name}</p>
-//                     <p className="text-accent-text/80 text-xs leading-tight">@{currentUser?.username}</p>
+//             <button onClick={() => onSelectItem('Profile')} aria-label="View Profile" className="flex items-center space-x-3 rounded-full hover:bg-black/10 p-1 transition-colors">
+//                <UserAvatar user={currentUser} className="w-10 h-10 flex-shrink-0" />
+//                <div className="hidden lg:block text-left">
+//                     <p className="font-semibold text-accent-text text-sm leading-tight truncate">{currentUser?.name}</p>
+//                     <p className="text-accent-text/80 text-xs leading-tight truncate">@{currentUser?.username}</p>
 //                 </div>
-//             </div>
+//             </button>
 //         </div>
 //       </header>
 
@@ -141,8 +149,6 @@
 // const MoonIcon = () => <IconWrapper><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg></IconWrapper>;
 
 // export default Sidebar;
-
-
 
 
 
@@ -184,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onSelectItem, currentUser
   const mainNavItems: { name: Exclude<NavItem, 'Profile' | 'TribeDetail' | 'Chuk'>; icon: React.ReactElement<IconProps>; unreadCount: number; }[] = [
     { name: 'Home', icon: <HomeIcon />, unreadCount: 0 },
     { name: 'Discover', icon: <DiscoverIcon />, unreadCount: 0 },
-    { name: 'Messages', icon: <MessagesIcon />, unreadCount: unreadMessageCount },
+    { name: 'Messages', icon: <MessagesIcon />, unreadCount: 0 },
     { name: 'Notifications', icon: <HeartIcon />, unreadCount: unreadNotificationCount },
     { name: 'Tribes', icon: <TribesIcon />, unreadCount: unreadTribeCount },
   ];
