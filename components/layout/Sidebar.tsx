@@ -2,9 +2,6 @@
 
 
 
-
-
-
 // import React from 'react';
 // import { useTheme } from '../../contexts/ThemeContext';
 // import { User } from '../../types';
@@ -40,7 +37,7 @@
 //   const mainNavItems: { name: Exclude<NavItem, 'Profile' | 'TribeDetail' | 'Chuk'>; icon: React.ReactElement<IconProps>; unreadCount: number; }[] = [
 //     { name: 'Home', icon: <HomeIcon />, unreadCount: 0 },
 //     { name: 'Discover', icon: <DiscoverIcon />, unreadCount: 0 },
-//     { name: 'Messages', icon: <MessagesIcon />, unreadCount: unreadMessageCount },
+//     { name: 'Messages', icon: <MessagesIcon />, unreadCount: 0 },
 //     { name: 'Notifications', icon: <HeartIcon />, unreadCount: unreadNotificationCount },
 //     { name: 'Tribes', icon: <TribesIcon />, unreadCount: unreadTribeCount },
 //   ];
@@ -155,6 +152,7 @@
 
 
 
+
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { User } from '../../types';
@@ -178,7 +176,9 @@ interface IconProps {
 const NavBadge: React.FC<{ count: number }> = ({ count }) => {
     if (count === 0) return null;
     return (
-        <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-surface"></span>
+        <span className="absolute top-0 right-0 block min-w-[1.25rem] h-5 rounded-full bg-red-500 ring-2 ring-surface text-white text-xs font-bold flex items-center justify-center px-1">
+            {count > 99 ? '99+' : count}
+        </span>
     );
 };
 
@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onSelectItem, currentUser
   const mainNavItems: { name: Exclude<NavItem, 'Profile' | 'TribeDetail' | 'Chuk'>; icon: React.ReactElement<IconProps>; unreadCount: number; }[] = [
     { name: 'Home', icon: <HomeIcon />, unreadCount: 0 },
     { name: 'Discover', icon: <DiscoverIcon />, unreadCount: 0 },
-    { name: 'Messages', icon: <MessagesIcon />, unreadCount: 0 },
+    { name: 'Messages', icon: <MessagesIcon />, unreadCount: unreadMessageCount },
     { name: 'Notifications', icon: <HeartIcon />, unreadCount: unreadNotificationCount },
     { name: 'Tribes', icon: <TribesIcon />, unreadCount: unreadTribeCount },
   ];
@@ -208,7 +208,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onSelectItem, currentUser
         }`}
       >
         {item.name}
-        <NavBadge count={item.unreadCount} />
+        {item.unreadCount > 0 && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-400"></span>}
       </button>
   );
 

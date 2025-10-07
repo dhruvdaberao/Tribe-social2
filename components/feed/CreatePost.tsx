@@ -4,25 +4,28 @@
 
 
 
-
 // import React, { useState, useRef, useEffect } from 'react';
-// import { User } from '../../types';
+// import { User, Story } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
 
 // interface CreatePostProps {
 //   currentUser: User;
 //   allUsers: User[];
+//   myStories: Story[];
 //   onAddPost: (content: string, imageUrl?: string) => void;
 //   isPosting: boolean;
 //   onOpenStoryCreator: () => void;
+//   onViewUserStories: (userId: string) => void;
 // }
 
-// const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, onAddPost, isPosting, onOpenStoryCreator }) => {
+// const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStories, onAddPost, isPosting, onOpenStoryCreator, onViewUserStories }) => {
 //   const [content, setContent] = useState('');
 //   const [imagePreview, setImagePreview] = useState<string | null>(null);
 //   const fileInputRef = useRef<HTMLInputElement>(null);
 //   const [mentionQuery, setMentionQuery] = useState('');
 //   const [showMentions, setShowMentions] = useState(false);
+
+//   const hasStory = myStories.length > 0;
 
 //   const filteredUsers = allUsers.filter(user =>
 //     user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
@@ -93,10 +96,15 @@
 //         )}
 //       <div className={`flex items-start space-x-4 ${isPosting ? 'opacity-50 pointer-events-none' : ''}`}>
 //         <div className="relative flex-shrink-0">
-//             <UserAvatar user={currentUser} className="w-12 h-12" />
+//             <button 
+//               onClick={hasStory ? () => onViewUserStories(currentUser.id) : onOpenStoryCreator}
+//               className={`w-12 h-12 rounded-full p-0.5 ${hasStory ? 'bg-accent' : 'bg-transparent'}`}
+//             >
+//               <UserAvatar user={currentUser} className="w-full h-full border-2 border-surface" />
+//             </button>
 //             <button
 //                 onClick={onOpenStoryCreator}
-//                 className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 border-2 border-surface hover:bg-blue-600 transition-transform hover:scale-110"
+//                 className="absolute -bottom-1 -right-1 bg-accent text-accent-text rounded-full p-0.5 border-2 border-surface hover:bg-accent-hover transition-transform hover:scale-110"
 //                 aria-label="Create a new story"
 //             >
 //                 <PlusIcon />
@@ -198,7 +206,6 @@
 
 
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Story } from '../../types';
 import UserAvatar from '../common/UserAvatar';
@@ -211,14 +218,14 @@ interface CreatePostProps {
   isPosting: boolean;
   onOpenStoryCreator: () => void;
   onViewUserStories: (userId: string) => void;
+  onImageSelected: (imageBase64: string) => void;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStories, onAddPost, isPosting, onOpenStoryCreator, onViewUserStories }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStories, onAddPost, isPosting, onOpenStoryCreator, onViewUserStories, onImageSelected }) => {
   const [content, setContent] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMentions, setShowMentions] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasStory = myStories.length > 0;
 
@@ -251,25 +258,18 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        onImageSelected(reader.result as string);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       };
       reader.readAsDataURL(file);
     }
   };
   
-  const removeImage = () => {
-      setImagePreview(null);
-      if(fileInputRef.current) {
-          fileInputRef.current.value = "";
-      }
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPosting && (content.trim() || imagePreview)) {
-      onAddPost(content, imagePreview || undefined);
+    if (!isPosting && content.trim()) {
+      onAddPost(content);
       setContent('');
-      removeImage();
     }
   };
 
@@ -313,7 +313,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
               onChange={handleContentChange}
               placeholder={`What's on your mind, ${currentUser.name.split(' ')[0]}?`}
               className="w-full p-2 bg-background border-border border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent resize-none text-primary"
-              rows={3}
+              rows={2}
               disabled={isPosting}
             />
           </form>
@@ -336,21 +336,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
             </div>
           )}
           
-          {imagePreview && (
-            <div className="mt-4 relative">
-              <img src={imagePreview} alt="Image preview" className="rounded-lg w-full max-h-80 object-cover" />
-              <button 
-                type="button"
-                onClick={removeImage}
-                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 leading-none hover:bg-black/80 transition-colors"
-                aria-label="Remove image"
-                disabled={isPosting}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-          )}
-
           <div className="flex justify-between items-center mt-2">
             <div>
               <button
@@ -374,7 +359,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={(!content.trim() && !imagePreview) || isPosting}
+              disabled={!content.trim() || isPosting}
               className="bg-accent text-accent-text font-semibold px-6 py-2 rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPosting ? 'Posting...' : 'Post'}

@@ -5,10 +5,9 @@
 
 
 
-
 // // FIX: Imported `useRef` to resolve reference errors in the EditProfileModal component.
 // import React, { useState, useRef } from 'react';
-// import { Post, User, Tribe } from '../../types';
+// import { Post, User, Tribe, Story } from '../../types';
 // import type { NavItem } from '../../App';
 // import PostCard from '../feed/PostCard';
 // import CreatePost from '../feed/CreatePost';
@@ -38,6 +37,8 @@
 //   onNavigate: (item: NavItem) => void;
 //   onSharePost: (post: Post, destination: { type: 'tribe' | 'user', id: string }) => void;
 //   onOpenStoryCreator: () => void;
+//   myStories: Story[];
+//   onViewUserStories: (userId: string) => void;
 // }
 
 // export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
@@ -45,7 +46,8 @@
 //         user, allUsers, visibleUsers, allTribes, posts, currentUser, 
 //         onLikePost, onCommentPost, onDeletePost, onDeleteComment, 
 //         onViewProfile, onUpdateUser, onAddPost, isPosting, onToggleFollow, 
-//         onStartConversation, onNavigate, onSharePost, onOpenStoryCreator
+//         onStartConversation, onNavigate, onSharePost, onOpenStoryCreator,
+//         myStories, onViewUserStories
 //     } = props;
 //     const [isEditModalOpen, setEditModalOpen] = useState(false);
 //     const [followModal, setFollowModal] = useState<{isOpen: boolean, type: 'followers' | 'following', userIds: string[]}>({isOpen: false, type: 'followers', userIds: []});
@@ -124,8 +126,8 @@
 //         </div>
 //       </div>
       
-//       {/* FIX: Pass `isPosting` and `onOpenStoryCreator` to `CreatePost` to enable post loading state and story creation from the profile page. */}
-//       {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} />}
+// {/* FIX: Pass `myStories` and `onViewUserStories` to `CreatePost` to satisfy its prop requirements. */}
+//       {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} onViewUserStories={onViewUserStories} />}
 
 //       <h2 className="text-xl font-bold text-primary my-6 font-display">{isOwnProfile ? "Your Posts" : `${user.name.split(' ')[0]}'s Posts`}</h2>
       
@@ -235,6 +237,7 @@
 
 
 
+
 // FIX: Imported `useRef` to resolve reference errors in the EditProfileModal component.
 import React, { useState, useRef } from 'react';
 import { Post, User, Tribe, Story } from '../../types';
@@ -269,6 +272,7 @@ interface ProfilePageProps {
   onOpenStoryCreator: () => void;
   myStories: Story[];
   onViewUserStories: (userId: string) => void;
+  onImageSelected: (imageBase64: string) => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
@@ -277,7 +281,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
         onLikePost, onCommentPost, onDeletePost, onDeleteComment, 
         onViewProfile, onUpdateUser, onAddPost, isPosting, onToggleFollow, 
         onStartConversation, onNavigate, onSharePost, onOpenStoryCreator,
-        myStories, onViewUserStories
+        myStories, onViewUserStories, onImageSelected
     } = props;
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [followModal, setFollowModal] = useState<{isOpen: boolean, type: 'followers' | 'following', userIds: string[]}>({isOpen: false, type: 'followers', userIds: []});
@@ -356,8 +360,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
         </div>
       </div>
       
-{/* FIX: Pass `myStories` and `onViewUserStories` to `CreatePost` to satisfy its prop requirements. */}
-      {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} onViewUserStories={onViewUserStories} />}
+      {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} onViewUserStories={onViewUserStories} onImageSelected={onImageSelected} />}
 
       <h2 className="text-xl font-bold text-primary my-6 font-display">{isOwnProfile ? "Your Posts" : `${user.name.split(' ')[0]}'s Posts`}</h2>
       
@@ -456,4 +459,4 @@ const CameraIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 
 const OptionsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
 const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
 const BlockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;

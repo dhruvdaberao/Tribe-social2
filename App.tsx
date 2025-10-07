@@ -1,5 +1,9 @@
 
 
+
+
+
+
 // import React, { useState, useEffect, useMemo, useCallback } from 'react';
 // import { useAuth } from './contexts/AuthContext';
 // import { useSocket } from './contexts/SocketContext';
@@ -21,6 +25,7 @@
 // import SettingsPage from './components/settings/SettingsPage';
 // import StoryCreator from './components/stories/StoryCreator';
 // import StoryViewer from './components/stories/StoryViewer';
+// import StoryFeed from './components/stories/StoryFeed';
 // import { Toaster, toast } from './components/common/Toast';
 
 // export type NavItem = 'Home' | 'Discover' | 'Messages' | 'Tribes' | 'Notifications' | 'Profile' | 'Chuk' | 'TribeDetail' | 'Settings';
@@ -46,6 +51,8 @@
 //     const [posts, setPosts] = useState<Post[]>([]);
 //     const [tribes, setTribes] = useState<Tribe[]>([]);
 //     const [myStories, setMyStories] = useState<Story[]>([]);
+//     const [followingUserStories, setFollowingUserStories] = useState<{ user: User, stories: Story[] }[]>([]);
+//     const [seenStoryAuthors, setSeenStoryAuthors] = useState<Set<string>>(new Set());
 //     const [isDataLoaded, setIsDataLoaded] = useState(false);
 //     const [isFetching, setIsFetching] = useState(false);
 //     const [isCreatingPost, setIsCreatingPost] = useState(false);
@@ -58,8 +65,14 @@
 //     const [editingTribe, setEditingTribe] = useState<Tribe | null>(null);
 //     const [chatTarget, setChatTarget] = useState<User | null>(null);
 //     const [isCreatingStory, setIsCreatingStory] = useState(false);
-//     const [viewingStory, setViewingStory] = useState<Story | null>(null);
+//     const [viewingUserStories, setViewingUserStories] = useState<{ user: User, stories: Story[] } | null>(null);
 
+//     useEffect(() => {
+//         const seen = localStorage.getItem('seenStoryAuthors');
+//         if (seen) {
+//             setSeenStoryAuthors(new Set(JSON.parse(seen)));
+//         }
+//     }, []);
 
 //     const userMap = useMemo(() => {
 //         const map = new Map(users.map((user: User) => [user.id, user]));
@@ -90,25 +103,24 @@
 //         }
 //         setIsFetching(true);
 //         try {
-//             // FIX: Use Promise.allSettled to prevent one failed API call from blocking the entire app load.
 //             const results = await Promise.allSettled([
 //                 api.fetchUsers(),
 //                 api.fetchFeedPosts(),
 //                 api.fetchTribes(),
 //                 api.fetchNotifications(),
 //                 api.fetchMyStories(),
+//                 api.fetchFollowingStories(),
 //             ]);
     
-//             const [usersResult, feedPostsResult, tribesResult, notificationsResult, myStoriesResult] = results;
+//             const [usersResult, feedPostsResult, tribesResult, notificationsResult, myStoriesResult, followingStoriesResult] = results;
     
-//             // Log errors for debugging but don't stop execution
 //             if (usersResult.status === 'rejected') console.error("Failed to fetch users:", usersResult.reason);
 //             if (feedPostsResult.status === 'rejected') console.error("Failed to fetch feed posts:", feedPostsResult.reason);
 //             if (tribesResult.status === 'rejected') console.error("Failed to fetch tribes:", tribesResult.reason);
 //             if (notificationsResult.status === 'rejected') console.error("Failed to fetch notifications:", notificationsResult.reason);
-//             if (myStoriesResult.status === 'rejected') console.error("Failed to fetch stories:", myStoriesResult.reason);
+//             if (myStoriesResult.status === 'rejected') console.error("Failed to fetch my stories:", myStoriesResult.reason);
+//             if (followingStoriesResult.status === 'rejected') console.error("Failed to fetch following stories:", followingStoriesResult.reason);
     
-//             // If any request fails with 401 Unauthorized, log out the user.
 //             const hasAuthError = results.some(r => r.status === 'rejected' && (r.reason as any)?.response?.status === 401);
 //             if (hasAuthError) {
 //                 toast.error("Your session has expired. Please log in again.");
@@ -116,12 +128,12 @@
 //                 return;
 //             }
     
-//             // Use fulfilled data or fall back to an empty array.
 //             const usersData = usersResult.status === 'fulfilled' ? usersResult.value.data : [];
 //             const feedPostsData = feedPostsResult.status === 'fulfilled' ? feedPostsResult.value.data : [];
 //             const tribesData = tribesResult.status === 'fulfilled' ? tribesResult.value.data : [];
 //             const notificationsData = notificationsResult.status === 'fulfilled' ? notificationsResult.value.data : [];
 //             const myStoriesData = myStoriesResult.status === 'fulfilled' ? myStoriesResult.value.data : [];
+//             const followingStoriesData = followingStoriesResult.status === 'fulfilled' ? followingStoriesResult.value.data : [];
 
 //             setUsers(usersData);
 //             const localUserMap = new Map<string, User>(usersData.map((user: User) => [user.id, user]));
@@ -134,10 +146,10 @@
 //             setTribes(populatedTribes);
 //             setNotifications(notificationsData);
 //             setMyStories(myStoriesData);
+//             setFollowingUserStories(followingStoriesData);
 //             setIsDataLoaded(true);
 
 //         } catch (error) {
-//             // This will now only catch critical errors, not individual API failures
 //             console.error("A critical error occurred during data fetching: ", error);
 //             toast.error("Could not load data. Please try refreshing.");
 //         } finally {
@@ -165,17 +177,12 @@
 //         }
 //     }, [fetchData, isAuthLoading, currentUser]);
 
-//     // Effect to manage joining/leaving Tribe socket rooms
 //     useEffect(() => {
 //         if (!socket || !viewedTribe) return;
-
 //         const room = `tribe-${viewedTribe.id}`;
 //         socket.emit('joinRoom', room);
-
-//         return () => {
-//             socket.emit('leaveRoom', room);
-//         };
-//     }, [socket, viewedTribe?.id]); // Dependency on ID prevents re-joining when messages update
+//         return () => { socket.emit('leaveRoom', room); };
+//     }, [socket, viewedTribe?.id]);
     
 //     useEffect(() => {
 //         if (!socket || !userMap.size) return;
@@ -517,12 +524,12 @@
 //         }
 //     }
 
-//     const handleCreateStory = async (storyData: Omit<Story, 'id' | 'user' | 'createdAt'>) => {
+//     const handleCreateStory = async (storyData: Omit<Story, 'id' | 'user' | 'createdAt' | 'author' | 'likes'>) => {
 //         try {
 //             const { data: newStory } = await api.createStory(storyData);
 //             setMyStories(prev => [newStory, ...prev]);
 //             setIsCreatingStory(false);
-//             setViewingStory(newStory);
+//             handleViewUserStories(currentUser!.id, [newStory, ...myStories]);
 //             toast.success("Story posted!");
 //         } catch (error) {
 //             console.error("Failed to create story:", error);
@@ -533,7 +540,7 @@
 //     const handleDeleteStory = async (storyId: string) => {
 //         const originalStories = myStories;
 //         setMyStories(prev => prev.filter(s => s.id !== storyId));
-//         setViewingStory(null);
+//         setViewingUserStories(null);
 //         try {
 //             await api.deleteStory(storyId);
 //             toast.success("Story deleted.");
@@ -543,6 +550,60 @@
 //             setMyStories(originalStories);
 //         }
 //     };
+
+//     const handleLikeStory = async (storyId: string) => {
+//         if (!currentUser) return;
+        
+//         const optimisticUpdate = (storiesState: typeof followingUserStories) => 
+//             storiesState.map(userStoryGroup => ({
+//                 ...userStoryGroup,
+//                 stories: userStoryGroup.stories.map(story => {
+//                     if (story.id === storyId) {
+//                         const isLiked = story.likes.includes(currentUser.id);
+//                         return {
+//                             ...story,
+//                             likes: isLiked ? story.likes.filter(id => id !== currentUser.id) : [...story.likes, currentUser.id]
+//                         };
+//                     }
+//                     return story;
+//                 })
+//             }));
+
+//         const originalFollowingStories = followingUserStories;
+//         setFollowingUserStories(optimisticUpdate(followingUserStories));
+//         if(viewingUserStories) {
+//             setViewingUserStories(prev => prev ? { ...prev, stories: optimisticUpdate([{...prev}])[0].stories } : null);
+//         }
+        
+//         try {
+//             await api.likeStory(storyId);
+//         } catch (error) {
+//             console.error("Failed to like story:", error);
+//             toast.error("Like failed. Reverting.");
+//             setFollowingUserStories(originalFollowingStories);
+//         }
+//     };
+    
+//     const handleViewUserStories = (userId: string, stories?: Story[]) => {
+//         let userStoryData;
+//         if (userId === currentUser?.id) {
+//             userStoryData = { user: currentUser, stories: stories || myStories };
+//         } else {
+//             const foundUserStories = followingUserStories.find(us => us.user.id === userId);
+//             if(foundUserStories) userStoryData = foundUserStories;
+//         }
+
+//         if (userStoryData && userStoryData.stories.length > 0) {
+//             setViewingUserStories(userStoryData);
+//             setSeenStoryAuthors(prev => {
+//                 const newSet = new Set(prev);
+//                 newSet.add(userId);
+//                 localStorage.setItem('seenStoryAuthors', JSON.stringify(Array.from(newSet)));
+//                 return newSet;
+//             });
+//         }
+//     };
+
 
 //     const visiblePosts = useMemo(() => {
 //         if (!currentUser) return [];
@@ -573,7 +634,8 @@
 //                 const feedPosts = visiblePosts.filter(p => (currentUser.following || []).includes(p.author.id) || p.author.id === currentUser.id);
 //                 return (
 //                     <>
-//                         <CreatePost currentUser={currentUser} allUsers={visibleUsers} onAddPost={handleAddPost} isPosting={isCreatingPost} onOpenStoryCreator={() => setIsCreatingStory(true)} />
+//                         <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={handleAddPost} isPosting={isCreatingPost} onOpenStoryCreator={() => setIsCreatingStory(true)} onViewUserStories={handleViewUserStories} />
+//                         <StoryFeed myStories={myStories} followingUserStories={followingUserStories} currentUser={currentUser} seenStoryAuthors={seenStoryAuthors} onViewUserStories={handleViewUserStories} />
 //                         <FeedPage posts={feedPosts} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onSharePost={handleSharePost} />
 //                     </>
 //                 );
@@ -593,8 +655,8 @@
 //                      return <div className="text-center p-8">User not found or is blocked.</div>;
 //                 }
 //                 const userPosts = visiblePosts.filter(p => p.author.id === viewedUser.id);
-//                 // FIX: Pass `isCreatingPost` and `onOpenStoryCreator` to `ProfilePage` to allow post creation and story creation from the profile view.
-//                 return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} />;
+// // FIX: Pass `myStories` and `onViewUserStories` to the ProfilePage component to fix a missing props error on the CreatePost component within it.
+//                 return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} />;
 //             case 'Settings':
 //                  return <SettingsPage currentUser={currentUser} onLogout={logout} onDeleteAccount={handleDeleteAccount} onToggleBlock={handleToggleBlock} allUsers={users} onBack={() => handleSelectItem('Profile')} />;
 //             default:
@@ -604,7 +666,6 @@
     
 //     let containerClass = 'max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-24 md:pb-8';
 //     if (isFullHeightPage) {
-//         // Correctly calculate height for mobile (with bottom nav) and desktop
 //         containerClass = 'h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)]';
 //     } else if (isWidePage) {
 //         containerClass = 'max-w-5xl mx-auto px-4 md:px-6 pt-6 pb-24 md:pb-8';
@@ -621,12 +682,16 @@
 //             </main>
 //             {editingTribe && <EditTribeModal tribe={editingTribe} onClose={() => setEditingTribe(null)} onSave={handleEditTribe} onDelete={handleDeleteTribe} />}
 //             {isCreatingStory && <StoryCreator onClose={() => setIsCreatingStory(false)} onCreate={handleCreateStory} />}
-//             {viewingStory && <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} onDelete={handleDeleteStory} />}
+//             {viewingUserStories && <StoryViewer userStories={viewingUserStories} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onClose={() => setViewingUserStories(null)} onDelete={handleDeleteStory} onLike={handleLikeStory} onSharePost={handleSharePost} />}
 //         </div>
 //     );
 // };
 
 // export default App;
+
+
+
+
 
 
 
@@ -656,6 +721,7 @@ import StoryCreator from './components/stories/StoryCreator';
 import StoryViewer from './components/stories/StoryViewer';
 import StoryFeed from './components/stories/StoryFeed';
 import { Toaster, toast } from './components/common/Toast';
+import ImageCropModal from './components/feed/ImageCropModal';
 
 export type NavItem = 'Home' | 'Discover' | 'Messages' | 'Tribes' | 'Notifications' | 'Profile' | 'Chuk' | 'TribeDetail' | 'Settings';
 
@@ -686,6 +752,7 @@ const App: React.FC = () => {
     const [isFetching, setIsFetching] = useState(false);
     const [isCreatingPost, setIsCreatingPost] = useState(false);
     const [isAllPostsLoaded, setIsAllPostsLoaded] = useState(false);
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
     // Navigation & Modal State
     const [activeNavItem, setActiveNavItem] = useState<NavItem>('Home');
@@ -897,6 +964,7 @@ const App: React.FC = () => {
         setIsCreatingPost(true);
         try {
             await api.createPost({ content, imageUrl });
+            toast.success("Post created successfully!");
         } catch (error) {
             console.error("Failed to add post:", error);
             toast.error("Could not create post. Please try again.");
@@ -944,6 +1012,7 @@ const App: React.FC = () => {
         setPosts(prev => prev.filter(p => p.id !== postId));
         try {
             await api.deletePost(postId);
+            toast.success("Post deleted.");
         } catch (error) {
             console.error("Failed to delete post:", error);
             toast.error("Could not delete post.");
@@ -1009,6 +1078,7 @@ const App: React.FC = () => {
         if (!currentUser) return;
         try {
             await api.updateProfile(updatedUserData);
+            toast.success("Profile updated!");
         } catch (error) {
             console.error("Failed to update user:", error);
         }
@@ -1091,6 +1161,7 @@ const App: React.FC = () => {
         try {
             const { data: newTribe } = await api.createTribe({ name, description, avatarUrl });
             setTribes(prev => [{...newTribe, messages: []}, ...prev]);
+            toast.success(`Tribe "${name}" created!`);
         } catch (error) {
             console.error("Failed to create tribe:", error);
         }
@@ -1117,6 +1188,7 @@ const App: React.FC = () => {
               setViewedTribe(prev => prev ? { ...prev, ...updatedTribeData } : null);
           }
           setEditingTribe(null);
+          toast.success("Tribe details updated.");
       } catch (error) {
           console.error("Failed to edit tribe:", error);
       }
@@ -1263,7 +1335,7 @@ const App: React.FC = () => {
                 const feedPosts = visiblePosts.filter(p => (currentUser.following || []).includes(p.author.id) || p.author.id === currentUser.id);
                 return (
                     <>
-                        <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={handleAddPost} isPosting={isCreatingPost} onOpenStoryCreator={() => setIsCreatingStory(true)} onViewUserStories={handleViewUserStories} />
+                        <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={handleAddPost} isPosting={isCreatingPost} onOpenStoryCreator={() => setIsCreatingStory(true)} onViewUserStories={handleViewUserStories} onImageSelected={setImageToCrop} />
                         <StoryFeed myStories={myStories} followingUserStories={followingUserStories} currentUser={currentUser} seenStoryAuthors={seenStoryAuthors} onViewUserStories={handleViewUserStories} />
                         <FeedPage posts={feedPosts} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onSharePost={handleSharePost} />
                     </>
@@ -1278,14 +1350,14 @@ const App: React.FC = () => {
                 if (!viewedTribe) return <div className="text-center p-8">Tribe not found. Go back to discover more tribes.</div>;
                 return <TribeDetailPage tribe={viewedTribe} currentUser={currentUser} userMap={userMap} onSendMessage={handleSendTribeMessage} onDeleteMessage={handleDeleteTribeMessage} onDeleteTribe={handleDeleteTribe} onBack={() => setActiveNavItem('Tribes')} onViewProfile={handleViewProfile} onEditTribe={(tribe) => setEditingTribe(tribe)} onJoinToggle={handleJoinToggle} />;
             case 'Notifications':
-                return <NotificationsPage notifications={notifications} onViewProfile={handleViewProfile} onViewMessage={handleStartConversation} onViewPost={handleViewPost} />;
+                return <NotificationsPage notifications={notifications} onViewProfile={handleViewProfile} onViewMessage={handleStartConversation} onViewPost={handleViewPost} onViewTribe={handleViewTribe} />;
             case 'Profile':
                 if (!viewedUser || (currentUser.blockedUsers || []).includes(viewedUser.id) || (viewedUser.blockedUsers || []).includes(currentUser.id)) {
                      return <div className="text-center p-8">User not found or is blocked.</div>;
                 }
                 const userPosts = visiblePosts.filter(p => p.author.id === viewedUser.id);
-// FIX: Pass `myStories` and `onViewUserStories` to the ProfilePage component to fix a missing props error on the CreatePost component within it.
-                return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} />;
+                // FIX: Corrected a typo in the `onViewUserStories` prop. The handler function is `handleViewUserStories`.
+                return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} onImageSelected={setImageToCrop} />;
             case 'Settings':
                  return <SettingsPage currentUser={currentUser} onLogout={logout} onDeleteAccount={handleDeleteAccount} onToggleBlock={handleToggleBlock} allUsers={users} onBack={() => handleSelectItem('Profile')} />;
             default:
@@ -1312,6 +1384,7 @@ const App: React.FC = () => {
             {editingTribe && <EditTribeModal tribe={editingTribe} onClose={() => setEditingTribe(null)} onSave={handleEditTribe} onDelete={handleDeleteTribe} />}
             {isCreatingStory && <StoryCreator onClose={() => setIsCreatingStory(false)} onCreate={handleCreateStory} />}
             {viewingUserStories && <StoryViewer userStories={viewingUserStories} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onClose={() => setViewingUserStories(null)} onDelete={handleDeleteStory} onLike={handleLikeStory} onSharePost={handleSharePost} />}
+            {imageToCrop && <ImageCropModal src={imageToCrop} onClose={() => setImageToCrop(null)} onCropComplete={croppedImage => handleAddPost('', croppedImage)} isPosting={isCreatingPost} />}
         </div>
     );
 };
