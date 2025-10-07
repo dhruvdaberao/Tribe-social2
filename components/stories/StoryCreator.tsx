@@ -1,9 +1,15 @@
+
+
+
+
+
 // import React, { useState, useRef, useEffect } from 'react';
 // import type { Story } from '../../types';
 
 // interface StoryCreatorProps {
 //   onClose: () => void;
-//   onCreate: (storyData: Omit<Story, 'id' | 'user' | 'createdAt'>) => void;
+// // FIX: Changed the type of storyData to Omit the properties that are not provided by the creator component.
+//   onCreate: (storyData: Omit<Story, 'id' | 'user' | 'createdAt' | 'author' | 'likes'>) => void;
 // }
 
 // type DraggableItem = {
@@ -177,6 +183,7 @@
 
 
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Story } from '../../types';
 
@@ -286,7 +293,7 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onClose, onCreate }) => {
       {/* Canvas */}
       <div 
         ref={canvasRef}
-        className="flex-1 bg-gradient-to-br from-gray-700 via-gray-900 to-black relative overflow-hidden cursor-grab"
+        className="flex-1 bg-gradient-to-br from-accent to-background relative overflow-hidden cursor-grab"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
