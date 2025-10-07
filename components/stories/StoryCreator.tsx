@@ -3,6 +3,8 @@
 
 
 
+
+
 // import React, { useState, useRef, useEffect } from 'react';
 // import type { Story } from '../../types';
 
@@ -112,7 +114,7 @@
 //       {/* Canvas */}
 //       <div 
 //         ref={canvasRef}
-//         className="flex-1 bg-gradient-to-br from-gray-700 via-gray-900 to-black relative overflow-hidden cursor-grab"
+//         className="flex-1 bg-gradient-to-br from-accent to-background relative overflow-hidden cursor-grab"
 //         onMouseMove={handleMouseMove}
 //         onMouseUp={handleMouseUp}
 //         onMouseLeave={handleMouseUp}
@@ -182,8 +184,6 @@
 
 
 
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { Story } from '../../types';
 
@@ -195,8 +195,6 @@ interface StoryCreatorProps {
 
 type DraggableItem = {
     type: 'text' | 'image';
-    id: number;
-    isDragging: boolean;
     offset: { x: number, y: number };
 } | null;
 
@@ -231,33 +229,23 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onClose, onCreate }) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, type: 'text' | 'image') => {
       const target = e.currentTarget as HTMLDivElement;
       const rect = target.getBoundingClientRect();
-      const currentPos = type === 'text' ? text!.pos : image!.pos;
       setActiveDrag({
           type,
-          id: Date.now(),
-          isDragging: true,
-          offset: { x: e.clientX - currentPos.x, y: e.clientY - currentPos.y }
+          offset: { x: e.clientX - rect.left, y: e.clientY - rect.top }
       });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!activeDrag || !activeDrag.isDragging) return;
+    if (!activeDrag) return;
     
     const canvasRect = canvasRef.current!.getBoundingClientRect();
-    let newX = e.clientX - activeDrag.offset.x;
-    let newY = e.clientY - activeDrag.offset.y;
+    let newX = e.clientX - canvasRect.left - activeDrag.offset.x;
+    let newY = e.clientY - canvasRect.top - activeDrag.offset.y;
 
-    // Constrain within canvas bounds
-    if(activeDrag.type === 'text') {
-        // Simple bounding for text
-        newX = Math.max(10, Math.min(newX, canvasRect.width - 100)); // Arbitrary width
-        newY = Math.max(10, Math.min(newY, canvasRect.height - 40)); // Arbitrary height
-        setText(prev => prev ? { ...prev, pos: { x: newX, y: newY } } : null);
+    if(activeDrag.type === 'text' && text) {
+        setText({ ...text, pos: { x: newX, y: newY } });
     } else if (activeDrag.type === 'image' && image) {
-        // More complex for image if needed, for now just position
-        newX = Math.max(0, Math.min(newX, canvasRect.width - 200)); // Assuming image width
-        newY = Math.max(0, Math.min(newY, canvasRect.height - 200)); // Assuming image height
-        setImage(prev => prev ? { ...prev, pos: {x: newX, y: newY }} : null);
+        setImage({ ...image, pos: {x: newX, y: newY }});
     }
   };
 
@@ -293,14 +281,15 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onClose, onCreate }) => {
       {/* Canvas */}
       <div 
         ref={canvasRef}
-        className="flex-1 bg-gradient-to-br from-accent to-background relative overflow-hidden cursor-grab"
+        className="flex-1 bg-gradient-to-br from-accent to-background relative overflow-hidden"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        style={{ cursor: activeDrag ? 'grabbing' : 'default' }}
       >
         {image && (
             <div 
-                className="absolute"
+                className="absolute cursor-grab"
                 style={{ left: `${image.pos.x}px`, top: `${image.pos.y}px` }}
                 onMouseDown={(e) => handleMouseDown(e, 'image')}
             >
@@ -314,7 +303,7 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onClose, onCreate }) => {
                     left: `${text.pos.x}px`, 
                     top: `${text.pos.y}px`,
                     textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
-                    cursor: activeDrag?.type === 'text' ? 'grabbing' : 'grab'
+                    cursor: 'grab'
                 }}
                 onMouseDown={(e) => {
                     if(!isEditingText) handleMouseDown(e, 'text')

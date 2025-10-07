@@ -3,6 +3,8 @@
 
 
 
+
+
 // import React from 'react';
 // import { Conversation, User } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
@@ -123,9 +125,6 @@
 
 
 
-
-
-
 import React from 'react';
 import { Conversation, User } from '../../types';
 import UserAvatar from '../common/UserAvatar';
@@ -173,7 +172,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, isLo
         
         {isLoading ? (
             <div className="text-center p-8 text-secondary flex flex-col items-center">
-                <img src="/kiss.gif" alt="Loading..." className="w-16 h-16 mb-2" />
+                <img src="/kiss.gif" alt="Loading..." className="w-24 h-auto mb-2" />
                 <p>Loading your chats...</p>
             </div>
         ) : conversations.length === 0 ? (

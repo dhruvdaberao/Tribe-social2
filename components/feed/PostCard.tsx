@@ -325,9 +325,6 @@
 
 
 
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Post, User, Tribe, Comment } from '../../types';
 import UserAvatar from '../common/UserAvatar';
@@ -367,10 +364,11 @@ interface PostCardProps {
   onDeleteComment: (postId: string, commentId: string) => void;
   onViewProfile: (user: User) => void;
   onSharePost: (post: Post, destination: { type: 'tribe' | 'user', id: string }) => void;
+  onModalClose?: () => void;
 }
 
 const PostCard: React.FC<PostCardProps> = (props) => {
-  const { post, currentUser, allUsers, allTribes, onLike, onComment, onDeletePost, onDeleteComment, onViewProfile, onSharePost } = props;
+  const { post, currentUser, allUsers, allTribes, onLike, onComment, onDeletePost, onDeleteComment, onViewProfile, onSharePost, onModalClose } = props;
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -434,9 +432,14 @@ const PostCard: React.FC<PostCardProps> = (props) => {
 
   return (
     <>
-    <div className="bg-surface border border-border rounded-2xl shadow-md mb-6">
+    <div className={`bg-surface border-border rounded-2xl shadow-md ${onModalClose ? '' : 'border mb-6'}`}>
       {/* Post Header */}
       <div className="flex items-center p-4">
+        {onModalClose && (
+            <button onClick={onModalClose} className="p-2 mr-2 -ml-2 text-primary rounded-full hover:bg-background">
+                <BackIcon />
+            </button>
+        )}
         <div className="w-12 h-12 rounded-full cursor-pointer" onClick={() => onViewProfile(post.author)}>
              <UserAvatar user={post.author} className="w-full h-full" />
         </div>
@@ -509,8 +512,8 @@ const PostCard: React.FC<PostCardProps> = (props) => {
         </div>
       )}
       {post.imageUrl && (
-        <div className="max-h-[60vh] overflow-hidden bg-background">
-          <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover object-center" />
+        <div className="bg-background">
+          <img src={post.imageUrl} alt="Post content" className="w-full h-auto max-h-[80vh] object-contain" />
         </div>
       )}
 
@@ -638,6 +641,7 @@ const ExternalLinkIcon = ({ className = 'h-5 w-5' }: { className?: string }) => 
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
     </svg>
 );
+const BackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
 
 
 export default PostCard;

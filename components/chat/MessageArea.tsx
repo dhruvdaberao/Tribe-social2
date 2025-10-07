@@ -1,4 +1,9 @@
 
+
+
+
+
+
 // import React, { useState, useRef, useEffect } from 'react';
 // import { Conversation, User, Message } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
@@ -157,14 +162,14 @@
 //         )}
 //       </div>
 
-//       <div className="p-4 border-t border-border bg-surface flex-shrink-0">
+//       <div className="p-4 bg-transparent flex-shrink-0">
 //         <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
 //           <input
 //             type="text"
 //             value={inputText}
 //             onChange={handleInputChange}
 //             placeholder="Type a message..."
-//             className="flex-1 bg-background border border-border rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent text-primary min-w-0"
+//             className="flex-1 bg-surface border border-border rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent text-primary min-w-0"
 //           />
 //           <button type="submit" className="bg-accent text-accent-text rounded-full w-11 h-11 flex-shrink-0 flex items-center justify-center hover:bg-accent-hover transition-colors disabled:opacity-50" disabled={!inputText.trim() || isSending}>
 //             {isSending ? <div className="w-5 h-5 border-2 border-accent-text border-t-transparent rounded-full animate-spin"></div> : <SendIcon />}
@@ -183,12 +188,11 @@
 
 
 
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Conversation, User, Message } from '../../types';
 import UserAvatar from '../common/UserAvatar';
 import { useSocket } from '../../contexts/SocketContext';
+import MarkdownRenderer from '../common/MarkdownRenderer';
 
 interface MessageAreaProps {
   conversation: Conversation;
@@ -321,9 +325,15 @@ export const MessageArea: React.FC<MessageAreaProps> = ({ conversation, messages
                         </div>
                     )}
                     <div className={`flex flex-col w-full max-w-xs lg:max-w-md ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                        <div className={`px-4 py-2.5 rounded-xl break-words ${isCurrentUser ? 'bg-accent text-accent-text' : 'bg-surface text-primary shadow-sm'}`}>
+                        <div className={`px-4 py-2.5 rounded-xl ${isCurrentUser ? 'bg-accent text-accent-text' : 'bg-surface text-primary shadow-sm'}`}>
                             {message.imageUrl && <img src={message.imageUrl} alt="Shared content" className="mb-2 rounded-lg w-full" />}
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                            <div className="text-sm leading-relaxed">
+                                {sender?.id === 'chuk-ai' ? (
+                                    <MarkdownRenderer text={message.text} />
+                                ) : (
+                                    <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                                )}
+                            </div>
                         </div>
                         <p className="text-xs text-secondary mt-1.5 px-1">{sentAt}</p>
                     </div>
