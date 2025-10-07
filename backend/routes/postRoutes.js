@@ -650,7 +650,6 @@
 
 
 
-
 import express from 'express';
 import mongoose from 'mongoose';
 import protect from '../middleware/authMiddleware.js';
@@ -667,9 +666,45 @@ const fullyPopulatePost = async (post) => {
     return post;
 };
 
+// A helper to manually format aggregated posts to match the schema's toJSON transform.
+const formatAggregatedPosts = (posts) => {
+    return posts.map(post => {
+        if (!post || !post.user) {
+            return null;
+        }
+
+        const postObject = { ...post };
+        postObject.id = postObject._id.toString();
+        postObject.timestamp = postObject.createdAt;
+        postObject.author = postObject.user;
+        
+        delete postObject.user;
+        delete postObject._id;
+        delete postObject.__v;
+        delete postObject.createdAt;
+        delete postObject.updatedAt;
+
+        postObject.comments = (postObject.comments || []).map(comment => {
+            if (!comment.user) return null;
+            const commentObject = { ...comment };
+            commentObject.id = commentObject._id.toString();
+            commentObject.timestamp = commentObject.createdAt;
+            commentObject.author = commentObject.user;
+            
+            delete commentObject.user;
+            delete commentObject._id;
+            delete commentObject.createdAt;
+            delete commentObject.updatedAt;
+            return commentObject;
+        }).filter(Boolean);
+
+        return postObject;
+    }).filter(Boolean);
+};
+
 
 // @route   GET /api/posts/feed
-// @desc    Get posts for the current user's feed
+// @desc    Get posts for the current user's feed with pagination
 router.get('/feed', protect, async (req, res) => {
     try {
         const currentUser = await User.findById(req.user.id);
@@ -677,83 +712,55 @@ router.get('/feed', protect, async (req, res) => {
             return res.status(401).json({ message: "User not found." });
         }
         
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
         const userIdsForFeed = [currentUser._id, ...(currentUser.following || [])];
+        
+        let posts = await Post.aggregate([
+            { $match: { user: { $in: userIdsForFeed.map(id => new mongoose.Types.ObjectId(id.toString())) } } },
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+        ]).allowDiskUse(true);
 
-        const postsFromDb = await Post.find({ user: { $in: userIdsForFeed } })
-            .sort({ createdAt: -1 })
-            .limit(50)
-            .populate('user')
-            .populate('comments.user');
+        posts = await Post.populate(posts, { path: 'user' });
+        posts = await Post.populate(posts, { path: 'comments.user' });
 
-        // Map and format the posts safely for the frontend.
-        const formattedPosts = postsFromDb
-            .map(post => {
-                // If a post's author has been deleted, populate returns null. Filter these out.
-                if (!post || !post.user) {
-                    return null;
-                }
-                
-                // .toJSON() recursively transforms the document and all populated fields.
-                const postObject = post.toJSON();
-                
-                // The frontend expects an 'author' field. Rename 'user' to 'author'.
-                postObject.author = postObject.user;
-                delete postObject.user;
-
-                // Do the same for each comment.
-                postObject.comments = postObject.comments.map(comment => {
-                    if (!comment.user) return null; // Filter out comments from deleted users
-                    comment.author = comment.user;
-                    delete comment.user;
-                    return comment;
-                }).filter(Boolean); // Remove any null comments
-
-                return postObject;
-            })
-            .filter(Boolean); // Remove any null posts
-
+        const formattedPosts = formatAggregatedPosts(posts);
         res.json(formattedPosts);
 
     } catch (error) {
         console.error("Error in /api/posts/feed route:", error);
-        res.status(500).json({ message: 'Server Error' });
+        res.status(500).json({ message: 'Server Error: Could not fetch feed.' });
     }
 });
 
 
 // @route   GET /api/posts
-// @desc    Get all posts for discover page, sorted by newest
+// @desc    Get all posts for discover page with pagination
 router.get('/', protect, async (req, res) => {
     try {
-        const postsFromDb = await Post.find({})
-            .sort({ createdAt: -1 })
-            .populate('user')
-            .populate('comments.user');
-        
-        // Map and format the posts safely for the frontend.
-        const formattedPosts = postsFromDb
-            .map(post => {
-                if (!post || !post.user) {
-                    return null;
-                }
-                const postObject = post.toJSON();
-                postObject.author = postObject.user;
-                delete postObject.user;
-                postObject.comments = postObject.comments.map(comment => {
-                    if (!comment.user) return null;
-                    comment.author = comment.user;
-                    delete comment.user;
-                    return comment;
-                }).filter(Boolean);
-                return postObject;
-            })
-            .filter(Boolean);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const skip = (page - 1) * limit;
 
+        let posts = await Post.aggregate([
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit }
+        ]).allowDiskUse(true);
+        
+        posts = await Post.populate(posts, { path: 'user' });
+        posts = await Post.populate(posts, { path: 'comments.user' });
+        
+        const formattedPosts = formatAggregatedPosts(posts);
         res.json(formattedPosts);
         
     } catch (error) {
         console.error("Discover posts route error:", error);
-        res.status(500).json({ message: 'Server Error' });
+        res.status(500).json({ message: 'Server Error: Could not fetch posts.' });
     }
 });
 
