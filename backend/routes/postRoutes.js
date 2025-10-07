@@ -669,6 +669,8 @@ const fullyPopulatePost = async (post) => {
 // A helper to manually format aggregated posts to match the schema's toJSON transform.
 const formatAggregatedPosts = (posts) => {
     return posts.map(post => {
+        // This check is crucial for data integrity. If a post's author was deleted,
+        // the populated 'user' field will be null. We should filter these out.
         if (!post || !post.user) {
             return null;
         }
@@ -676,22 +678,21 @@ const formatAggregatedPosts = (posts) => {
         const postObject = { ...post };
         postObject.id = postObject._id.toString();
         postObject.timestamp = postObject.createdAt;
-        postObject.author = postObject.user;
+        // The 'user' property is already populated. We will NOT rename it to 'author' here
+        // to maintain consistency with other endpoints. The frontend is responsible for this mapping.
         
-        delete postObject.user;
         delete postObject._id;
         delete postObject.__v;
         delete postObject.createdAt;
         delete postObject.updatedAt;
 
         postObject.comments = (postObject.comments || []).map(comment => {
-            if (!comment.user) return null;
+            if (!comment.user) return null; // Filter out comments from deleted users
             const commentObject = { ...comment };
             commentObject.id = commentObject._id.toString();
             commentObject.timestamp = commentObject.createdAt;
-            commentObject.author = commentObject.user;
+            // 'comment.user' is populated. No rename needed.
             
-            delete commentObject.user;
             delete commentObject._id;
             delete commentObject.createdAt;
             delete commentObject.updatedAt;
