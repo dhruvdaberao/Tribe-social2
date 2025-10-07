@@ -577,6 +577,7 @@
 
 
 
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useSocket } from './contexts/SocketContext';
@@ -667,32 +668,56 @@ const App: React.FC = () => {
         }
         setIsFetching(true);
         try {
-            const [usersData, feedPostsData, tribesData, notificationsData, myStoriesData] = await Promise.all([
+            // FIX: Use Promise.allSettled to prevent one failed API call from blocking the entire app load.
+            const results = await Promise.allSettled([
                 api.fetchUsers(),
                 api.fetchFeedPosts(),
                 api.fetchTribes(),
                 api.fetchNotifications(),
                 api.fetchMyStories(),
             ]);
-            
-            const allUsers = usersData.data;
-            setUsers(allUsers);
-            const localUserMap = new Map<string, User>(allUsers.map((user: User) => [user.id, user]));
+    
+            const [usersResult, feedPostsResult, tribesResult, notificationsResult, myStoriesResult] = results;
+    
+            // Log errors for debugging but don't stop execution
+            if (usersResult.status === 'rejected') console.error("Failed to fetch users:", usersResult.reason);
+            if (feedPostsResult.status === 'rejected') console.error("Failed to fetch feed posts:", feedPostsResult.reason);
+            if (tribesResult.status === 'rejected') console.error("Failed to fetch tribes:", tribesResult.reason);
+            if (notificationsResult.status === 'rejected') console.error("Failed to fetch notifications:", notificationsResult.reason);
+            if (myStoriesResult.status === 'rejected') console.error("Failed to fetch stories:", myStoriesResult.reason);
+    
+            // If any request fails with 401 Unauthorized, log out the user.
+            const hasAuthError = results.some(r => r.status === 'rejected' && (r.reason as any)?.response?.status === 401);
+            if (hasAuthError) {
+                toast.error("Your session has expired. Please log in again.");
+                logout();
+                return;
+            }
+    
+            // Use fulfilled data or fall back to an empty array.
+            const usersData = usersResult.status === 'fulfilled' ? usersResult.value.data : [];
+            const feedPostsData = feedPostsResult.status === 'fulfilled' ? feedPostsResult.value.data : [];
+            const tribesData = tribesResult.status === 'fulfilled' ? tribesResult.value.data : [];
+            const notificationsData = notificationsResult.status === 'fulfilled' ? notificationsResult.value.data : [];
+            const myStoriesData = myStoriesResult.status === 'fulfilled' ? myStoriesResult.value.data : [];
+
+            setUsers(usersData);
+            const localUserMap = new Map<string, User>(usersData.map((user: User) => [user.id, user]));
             localUserMap.set(CHUK_AI_USER.id, CHUK_AI_USER);
 
-            const populatedPosts = feedPostsData.data.map((post: any) => populatePost(post, localUserMap)).filter(Boolean);
+            const populatedPosts = feedPostsData.map((post: any) => populatePost(post, localUserMap)).filter(Boolean);
             setPosts(populatedPosts as Post[]);
             
-            const populatedTribes = tribesData.data.map((tribe: any) => ({ ...tribe, messages: [] }));
+            const populatedTribes = tribesData.map((tribe: any) => ({ ...tribe, messages: [] }));
             setTribes(populatedTribes);
-            setNotifications(notificationsData.data);
-            setMyStories(myStoriesData.data);
+            setNotifications(notificationsData);
+            setMyStories(myStoriesData);
             setIsDataLoaded(true);
 
         } catch (error) {
-            console.error("Failed to fetch initial data: ", error);
+            // This will now only catch critical errors, not individual API failures
+            console.error("A critical error occurred during data fetching: ", error);
             toast.error("Could not load data. Please try refreshing.");
-            if ((error as any)?.response?.status === 401) logout();
         } finally {
             setIsFetching(false);
         }

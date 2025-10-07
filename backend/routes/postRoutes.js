@@ -348,8 +348,6 @@
 
 
 
-
-
 import express from 'express';
 import protect from '../middleware/authMiddleware.js';
 import Post from '../models/postModel.js';
@@ -394,6 +392,11 @@ const safePopulatePosts = async (postsFromDb) => {
     // Manually populate and filter posts to create the final response
     return postsFromDb.map(post => {
         try {
+            // FIX: Add guard clause to prevent crash on posts with missing user reference.
+            if (!post.user) {
+                console.warn(`Skipping post with null user reference: ${post._id}`);
+                return null;
+            }
             const author = userMap.get(post.user.toString());
             if (!author) return null;
 
