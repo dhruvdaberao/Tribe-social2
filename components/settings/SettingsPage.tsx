@@ -168,7 +168,7 @@ const SettingsPage: React.FC<SettingsPageProps> = (props) => {
       {/* Sidebar */}
       <div className="flex-shrink-0 md:w-64 border-b md:border-b-0 md:border-r border-border p-4">
         <div className="flex items-center space-x-3 mb-6">
-            <button onClick={onBack} className="p-2 -ml-2 text-primary hover:bg-background rounded-full"><BackIcon /></button>
+            <button onClick={onBack} className="flex items-center space-x-1 p-2 -ml-2 text-primary hover:bg-background rounded-full"><BackIcon /> <span className="font-semibold">Back</span></button>
             <h1 className="text-2xl font-bold font-display text-primary">Settings</h1>
         </div>
         <nav className="space-y-1">

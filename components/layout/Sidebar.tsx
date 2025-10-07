@@ -224,50 +224,46 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onSelectItem, currentUser
   return (
     <>
       {/* Top Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-accent shadow-md z-50 grid grid-cols-3 items-center px-4 md:px-6">
-        {/* Left: Logo */}
-        <div className="flex justify-start">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-accent shadow-md z-50 flex items-center justify-between px-4 md:px-6">
+        {/* Left Side: Logo & Desktop Nav */}
+        <div className="flex items-center space-x-6">
             <div 
               className="flex items-center space-x-3 cursor-pointer"
               onClick={() => onSelectItem('Home')}
             >
               <img src="/tribe.png" alt="Tribe Logo" className="w-10 h-10 flex-shrink-0" />
-              <span className="text-2xl font-bold font-display text-accent-text hidden sm:inline">Tribe</span>
+              <span className="text-2xl font-bold font-display text-accent-text sm:inline">Tribe</span>
             </div>
+            <nav className="hidden md:flex items-center space-x-2">
+               {mainNavItems.map(item => (
+                  <DesktopNavLink key={item.name} item={item} />
+               ))}
+            </nav>
         </div>
 
-        {/* Center: Nav */}
-        <nav className="hidden md:flex items-center space-x-2 justify-center">
-           {mainNavItems.map(item => (
-              <DesktopNavLink key={item.name} item={item} />
-           ))}
-        </nav>
-
-        {/* Right: Controls */}
-        <div className="flex justify-end">
-            <div className="flex items-center space-x-2">
-                <button
-                  onClick={toggleTheme}
-                  className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2 flex-shrink-0"
-                  aria-label="Toggle theme"
-                >
-                  {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-                </button>
-                <button
-                  onClick={() => onSelectItem('Chuk')}
-                  className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2 flex-shrink-0"
-                  aria-label="Open Chuk AI Assistant"
-                >
-                    <ChukIcon />
-                </button>
-                <button onClick={() => onSelectItem('Profile')} aria-label="View Profile" className="flex items-center space-x-3 rounded-full hover:bg-black/10 p-1 transition-colors">
-                   <UserAvatar user={currentUser} className="w-10 h-10 flex-shrink-0" />
-                   <div className="hidden lg:block text-left">
-                        <p className="font-semibold text-accent-text text-sm leading-tight truncate">{currentUser?.name}</p>
-                        <p className="text-accent-text/80 text-xs leading-tight truncate">@{currentUser?.username}</p>
-                    </div>
-                </button>
-            </div>
+        {/* Right Side: Controls */}
+        <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleTheme}
+              className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2 flex-shrink-0"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+            </button>
+            <button
+              onClick={() => onSelectItem('Chuk')}
+              className="text-accent-text/80 hover:text-accent-text hover:bg-black/10 rounded-full p-2 flex-shrink-0"
+              aria-label="Open Chuk AI Assistant"
+            >
+                <ChukIcon />
+            </button>
+            <button onClick={() => onSelectItem('Profile')} aria-label="View Profile" className="flex items-center space-x-3 rounded-full hover:bg-black/10 p-1 transition-colors">
+               <UserAvatar user={currentUser} className="w-10 h-10 flex-shrink-0" />
+               <div className="hidden lg:block text-left">
+                    <p className="font-semibold text-accent-text text-sm leading-tight truncate">{currentUser?.name}</p>
+                    <p className="text-accent-text/80 text-xs leading-tight truncate">@{currentUser?.username}</p>
+                </div>
+            </button>
         </div>
       </header>
 
