@@ -1,3 +1,5 @@
+
+
 // import React from 'react';
 // import { Post } from '../../types';
 
@@ -13,7 +15,7 @@
 //       className="relative aspect-square bg-surface border border-border rounded-md overflow-hidden cursor-pointer group"
 //     >
 //       {post.imageUrl ? (
-//         <img src={post.imageUrl} alt="Post" className="w-full h-full object-cover" />
+//         <img src={post.imageUrl} alt="Post" className="w-full h-full object-cover object-center" />
 //       ) : (
 //         <div className="p-3 text-primary text-xs">
 //           <p className="line-clamp-6">{post.content}</p>
@@ -40,6 +42,8 @@
 // };
 
 // export default PostGridItem;
+
+
 
 
 

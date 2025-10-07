@@ -3,7 +3,6 @@
 
 
 
-
 // import React from 'react';
 // import { Conversation, User } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
@@ -51,7 +50,7 @@
         
 //         {isLoading ? (
 //             <div className="text-center p-8 text-secondary flex flex-col items-center">
-//                 <img src="/chuk.gif" alt="Loading..." className="w-16 h-16 mb-2" />
+//                 <img src="/kiss.gif" alt="Loading..." className="w-16 h-16 mb-2" />
 //                 <p>Loading your chats...</p>
 //             </div>
 //         ) : conversations.length === 0 ? (
@@ -119,6 +118,9 @@
 // const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>;
 
 // export default ConversationList;
+
+
+
 
 
 

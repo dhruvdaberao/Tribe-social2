@@ -5,6 +5,7 @@
 
 
 
+
 // import React, { useState, useMemo, useRef, useEffect } from 'react';
 // import { Post, User, Tribe, Comment } from '../../types';
 // import UserAvatar from '../common/UserAvatar';
@@ -187,7 +188,7 @@
 //       )}
 //       {post.imageUrl && (
 //         <div className="max-h-[60vh] overflow-hidden bg-background">
-//           <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover" />
+//           <img src={post.imageUrl} alt="Post content" className="w-full h-full object-cover object-center" />
 //         </div>
 //       )}
 
@@ -318,9 +319,6 @@
 
 
 // export default PostCard;
-
-
-
 
 
 

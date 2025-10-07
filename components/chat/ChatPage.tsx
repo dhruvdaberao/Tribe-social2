@@ -2,9 +2,6 @@
 
 
 
-
-
-
 // import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // import { Conversation, User, Message, Post } from '../../types';
 // import ConversationList from './ConversationList';
@@ -31,7 +28,7 @@
 //   const [isMessageAreaVisible, setMessageAreaVisible] = useState(false);
 //   const [isNewMessageModalOpen, setNewMessageModalOpen] = useState(false);
 //   const [isSending, setIsSending] = useState(false);
-//   const { socket, onlineUsers, clearUnreadMessages, unreadCounts } = useSocket();
+//   const { socket, onlineUsers, clearUnreadMessages, unreadCounts, setActiveChatPartnerId } = useSocket();
 
 //   const userMap = useMemo(() => {
 //       const map = new Map(allUsers.map(user => [user.id, user]));
@@ -101,6 +98,7 @@
 //         return;
 //     }
     
+//     setActiveChatPartnerId(otherUserId);
 //     clearUnreadMessages(otherUserId);
 //     socket?.emit('joinRoom', `dm-${[currentUser.id, otherUserId].sort().join('-')}`);
 
@@ -121,7 +119,7 @@
 //     } finally {
 //         setIsLoadingMessages(false);
 //     }
-//   }, [currentUser.id, currentUser.name, chukUser.id, socket, clearUnreadMessages]);
+//   }, [currentUser.id, currentUser.name, chukUser.id, socket, clearUnreadMessages, setActiveChatPartnerId]);
   
 //   const handleStartNewConversation = useCallback((targetUser: User) => {
 //     if (targetUser.id === chukUser.id) {
@@ -152,6 +150,7 @@
 //       const otherUserId = activeConversation.participants.find(p => p.id !== currentUser.id)?.id;
 //       if (otherUserId) socket?.emit('leaveRoom', `dm-${[currentUser.id, otherUserId].sort().join('-')}`);
 //     }
+//     setActiveChatPartnerId(null);
 //     setActiveConversation(null);
 //     setMessageAreaVisible(false);
 //   };
@@ -236,6 +235,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Conversation, User, Message, Post } from '../../types';
 import ConversationList from './ConversationList';
@@ -263,6 +264,14 @@ const ChatPage: React.FC<ChatPageProps> = ({ currentUser, allUsers, chukUser, in
   const [isNewMessageModalOpen, setNewMessageModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const { socket, onlineUsers, clearUnreadMessages, unreadCounts, setActiveChatPartnerId } = useSocket();
+
+  useEffect(() => {
+    // When ChatPage is unmounted (e.g., user navigates away),
+    // ensure we clear the active chat partner ID so notifications resume correctly.
+    return () => {
+      setActiveChatPartnerId(null);
+    };
+  }, [setActiveChatPartnerId]);
 
   const userMap = useMemo(() => {
       const map = new Map(allUsers.map(user => [user.id, user]));

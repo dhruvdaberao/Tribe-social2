@@ -1,12 +1,6 @@
 
 
 
-
-
-
-
-
-
 // import React, { useState } from 'react';
 // import { User } from '../../types';
 // import BlockedListModal from '../profile/BlockedListModal';
@@ -66,6 +60,7 @@
 
 //       {/* Content */}
 //       <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+//         <img src="/noodles.gif" alt="Noodles eating gif" className="w-full max-w-xs mx-auto rounded-lg mb-8 shadow-md" />
 //         <h2 className="text-2xl font-bold font-display text-primary mb-6">{activeTab}</h2>
 //         <div className="space-y-4">
 //           {renderContent()}
@@ -123,6 +118,7 @@
 // const BackIcon = () => <Icon><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></Icon>;
 
 // export default SettingsPage;
+
 
 
 
