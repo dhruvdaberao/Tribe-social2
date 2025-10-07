@@ -272,7 +272,6 @@ interface ProfilePageProps {
   onOpenStoryCreator: () => void;
   myStories: Story[];
   onViewUserStories: (userId: string) => void;
-  onImageSelected: (imageBase64: string) => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
@@ -281,7 +280,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
         onLikePost, onCommentPost, onDeletePost, onDeleteComment, 
         onViewProfile, onUpdateUser, onAddPost, isPosting, onToggleFollow, 
         onStartConversation, onNavigate, onSharePost, onOpenStoryCreator,
-        myStories, onViewUserStories, onImageSelected
+        myStories, onViewUserStories
     } = props;
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [followModal, setFollowModal] = useState<{isOpen: boolean, type: 'followers' | 'following', userIds: string[]}>({isOpen: false, type: 'followers', userIds: []});
@@ -360,7 +359,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = (props) => {
         </div>
       </div>
       
-      {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} onViewUserStories={onViewUserStories} onImageSelected={onImageSelected} />}
+      {isOwnProfile && <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={onAddPost} isPosting={isPosting} onOpenStoryCreator={onOpenStoryCreator} onViewUserStories={onViewUserStories} />}
 
       <h2 className="text-xl font-bold text-primary my-6 font-display">{isOwnProfile ? "Your Posts" : `${user.name.split(' ')[0]}'s Posts`}</h2>
       
@@ -459,4 +458,4 @@ const CameraIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 
 const OptionsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
 const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
 const BlockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;

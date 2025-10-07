@@ -206,7 +206,8 @@
 
 
 
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { User, Story } from '../../types';
 import UserAvatar from '../common/UserAvatar';
 
@@ -218,11 +219,11 @@ interface CreatePostProps {
   isPosting: boolean;
   onOpenStoryCreator: () => void;
   onViewUserStories: (userId: string) => void;
-  onImageSelected: (imageBase64: string) => void;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStories, onAddPost, isPosting, onOpenStoryCreator, onViewUserStories, onImageSelected }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStories, onAddPost, isPosting, onOpenStoryCreator, onViewUserStories }) => {
   const [content, setContent] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMentions, setShowMentions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -258,7 +259,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onImageSelected(reader.result as string);
+        setImagePreview(reader.result as string);
         if (fileInputRef.current) fileInputRef.current.value = "";
       };
       reader.readAsDataURL(file);
@@ -267,9 +268,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPosting && content.trim()) {
-      onAddPost(content);
+    if (!isPosting && (content.trim() || imagePreview)) {
+      onAddPost(content, imagePreview || undefined);
       setContent('');
+      setImagePreview(null);
     }
   };
 
@@ -313,7 +315,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
               onChange={handleContentChange}
               placeholder={`What's on your mind, ${currentUser.name.split(' ')[0]}?`}
               className="w-full p-2 bg-background border-border border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent resize-none text-primary"
-              rows={2}
+              rows={imagePreview ? 2 : 3}
               disabled={isPosting}
             />
           </form>
@@ -336,6 +338,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
             </div>
           )}
           
+          {imagePreview && (
+              <div className="mt-2 relative">
+                  <img src={imagePreview} alt="Selected preview" className="rounded-lg max-h-48 w-auto" />
+                  <button onClick={() => setImagePreview(null)} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70">
+                      <CloseIcon />
+                  </button>
+              </div>
+          )}
+
           <div className="flex justify-between items-center mt-2">
             <div>
               <button
@@ -359,7 +370,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, allUsers, myStorie
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={!content.trim() || isPosting}
+              disabled={(!content.trim() && !imagePreview) || isPosting}
               className="bg-accent text-accent-text font-semibold px-6 py-2 rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPosting ? 'Posting...' : 'Post'}
@@ -377,6 +388,7 @@ const ImageIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
+const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>;
 
 export default CreatePost;

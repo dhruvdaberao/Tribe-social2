@@ -181,7 +181,6 @@
 
 
 
-
 import React, { useEffect, useCallback } from 'react';
 import { Notification, User, Tribe } from '../../types';
 import UserAvatar from '../common/UserAvatar';
@@ -190,10 +189,12 @@ import { useSocket } from '../../contexts/SocketContext';
 
 interface NotificationsPageProps {
   notifications: Notification[];
+  allTribes: Tribe[];
   onViewProfile: (user: User) => void;
   onViewMessage: (user: User) => void;
   onViewPost: (postId: string) => void;
   onViewTribe: (tribe: Tribe) => void;
+  onViewStory: (userId: string) => void;
 }
 
 const timeAgo = (dateString: string) => {
@@ -212,7 +213,7 @@ const timeAgo = (dateString: string) => {
     return date.toLocaleDateString();
 };
 
-const NotificationItem: React.FC<{ notification: Notification; onViewProfile: (user: User) => void; onViewMessage: (user: User) => void; onViewPost: (postId: string) => void; onViewTribe: (tribe: any) => void; }> = ({ notification, onViewProfile, onViewMessage, onViewPost, onViewTribe }) => {
+const NotificationItem: React.FC<{ notification: Notification; allTribes: Tribe[]; onViewProfile: (user: User) => void; onViewMessage: (user: User) => void; onViewPost: (postId: string) => void; onViewTribe: (tribe: any) => void; onViewStory: (userId: string) => void; }> = ({ notification, allTribes, onViewProfile, onViewMessage, onViewPost, onViewTribe, onViewStory }) => {
   const { sender, type, timestamp } = notification;
 
   const renderText = () => {
@@ -228,7 +229,8 @@ const NotificationItem: React.FC<{ notification: Notification; onViewProfile: (u
       case 'story_like':
         return 'liked your story.';
       case 'tribe_join':
-        return 'joined your tribe.';
+        const tribe = allTribes.find(t => t.id === notification.tribeId);
+        return `joined your tribe: ${tribe?.name || ''}`;
       default:
         return '';
     }
@@ -240,20 +242,34 @@ const NotificationItem: React.FC<{ notification: Notification; onViewProfile: (u
         case 'message': return 'View Message';
         case 'like': return 'View Post';
         case 'comment': return 'View Post';
-        case 'story_like': return 'View Profile';
-        case 'tribe_join': return 'View Profile';
+        case 'story_like': return 'View Story';
+        case 'tribe_join': return 'View Tribe';
         default: return 'View Details';
     }
   };
   
   const handleClick = () => {
-      if (type === 'follow' || type === 'story_like' || type === 'tribe_join') {
-          onViewProfile(sender);
-      } else if (type === 'message') {
-          onViewMessage(sender);
-      } else if ((type === 'like' || type === 'comment') && notification.postId) {
-          onViewPost(notification.postId);
-      }
+    switch (type) {
+        case 'follow':
+            onViewProfile(sender);
+            break;
+        case 'story_like':
+            onViewStory(sender.id);
+            break;
+        case 'message':
+            onViewMessage(sender);
+            break;
+        case 'like':
+        case 'comment':
+            if (notification.postId) onViewPost(notification.postId);
+            break;
+        case 'tribe_join':
+            if (notification.tribeId) {
+                const tribe = allTribes.find(t => t.id === notification.tribeId);
+                if (tribe) onViewTribe(tribe);
+            }
+            break;
+    }
   };
 
   const Icon = {
@@ -300,7 +316,7 @@ const NotificationItem: React.FC<{ notification: Notification; onViewProfile: (u
   );
 };
 
-const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, onViewProfile, onViewMessage, onViewPost, onViewTribe }) => {
+const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, allTribes, onViewProfile, onViewMessage, onViewPost, onViewTribe, onViewStory }) => {
   const { setNotifications } = useSocket();
   
   const markAsRead = useCallback(async () => {
@@ -330,11 +346,13 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ notifications, on
           notifications.map(notification => (
             <NotificationItem 
                 key={notification.id} 
-                notification={notification} 
+                notification={notification}
+                allTribes={allTribes}
                 onViewProfile={onViewProfile} 
                 onViewMessage={onViewMessage}
                 onViewPost={onViewPost}
                 onViewTribe={onViewTribe}
+                onViewStory={onViewStory}
             />
           ))
         ) : (

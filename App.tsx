@@ -695,10 +695,7 @@
 
 
 
-
-
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useSocket } from './contexts/SocketContext';
 import { User, Post, Tribe, TribeMessage, Notification as NotificationType, Comment, Story } from './types';
@@ -721,7 +718,7 @@ import StoryCreator from './components/stories/StoryCreator';
 import StoryViewer from './components/stories/StoryViewer';
 import StoryFeed from './components/stories/StoryFeed';
 import { Toaster, toast } from './components/common/Toast';
-import ImageCropModal from './components/feed/ImageCropModal';
+import PostViewModal from './components/profile/PostViewModal';
 
 export type NavItem = 'Home' | 'Discover' | 'Messages' | 'Tribes' | 'Notifications' | 'Profile' | 'Chuk' | 'TribeDetail' | 'Settings';
 
@@ -752,12 +749,13 @@ const App: React.FC = () => {
     const [isFetching, setIsFetching] = useState(false);
     const [isCreatingPost, setIsCreatingPost] = useState(false);
     const [isAllPostsLoaded, setIsAllPostsLoaded] = useState(false);
-    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const lastFetchTimestamp = useRef<number | null>(null);
 
     // Navigation & Modal State
     const [activeNavItem, setActiveNavItem] = useState<NavItem>('Home');
     const [viewedUser, setViewedUser] = useState<User | null>(null);
     const [viewedTribe, setViewedTribe] = useState<Tribe | null>(null);
+    const [viewingPost, setViewingPost] = useState<Post | null>(null);
     const [editingTribe, setEditingTribe] = useState<Tribe | null>(null);
     const [chatTarget, setChatTarget] = useState<User | null>(null);
     const [isCreatingStory, setIsCreatingStory] = useState(false);
@@ -793,6 +791,9 @@ const App: React.FC = () => {
     }, []);
 
     const fetchData = useCallback(async () => {
+        if (isDataLoaded && lastFetchTimestamp.current && (Date.now() - lastFetchTimestamp.current < 300000)) { // 5 min cache to prevent re-fetch
+            return;
+        }
         if (!currentUser) {
             setIsDataLoaded(false);
             return;
@@ -844,6 +845,7 @@ const App: React.FC = () => {
             setMyStories(myStoriesData);
             setFollowingUserStories(followingStoriesData);
             setIsDataLoaded(true);
+            lastFetchTimestamp.current = Date.now();
 
         } catch (error) {
             console.error("A critical error occurred during data fetching: ", error);
@@ -851,7 +853,7 @@ const App: React.FC = () => {
         } finally {
             setIsFetching(false);
         }
-    }, [currentUser, logout, populatePost, setNotifications]);
+    }, [currentUser, logout, populatePost, setNotifications, isDataLoaded]);
     
     const fetchAllPostsForDiscover = useCallback(async () => {
       if (isAllPostsLoaded) return;
@@ -1070,8 +1072,11 @@ const App: React.FC = () => {
                 return;
             }
         }
-        if (post?.author) handleViewProfile(post.author);
-        else toast.error("Could not find the post. It may have been deleted.");
+        if (post) {
+            setViewingPost(post);
+        } else {
+            toast.error("Could not find the post. It may have been deleted.");
+        }
     };
 
     const handleUpdateUser = async (updatedUserData: Partial<User>) => {
@@ -1335,7 +1340,7 @@ const App: React.FC = () => {
                 const feedPosts = visiblePosts.filter(p => (currentUser.following || []).includes(p.author.id) || p.author.id === currentUser.id);
                 return (
                     <>
-                        <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={handleAddPost} isPosting={isCreatingPost} onOpenStoryCreator={() => setIsCreatingStory(true)} onViewUserStories={handleViewUserStories} onImageSelected={setImageToCrop} />
+                        <CreatePost currentUser={currentUser} allUsers={visibleUsers} myStories={myStories} onAddPost={handleAddPost} isPosting={isCreatingPost} onOpenStoryCreator={() => setIsCreatingStory(true)} onViewUserStories={handleViewUserStories} />
                         <StoryFeed myStories={myStories} followingUserStories={followingUserStories} currentUser={currentUser} seenStoryAuthors={seenStoryAuthors} onViewUserStories={handleViewUserStories} />
                         <FeedPage posts={feedPosts} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onSharePost={handleSharePost} />
                     </>
@@ -1350,14 +1355,13 @@ const App: React.FC = () => {
                 if (!viewedTribe) return <div className="text-center p-8">Tribe not found. Go back to discover more tribes.</div>;
                 return <TribeDetailPage tribe={viewedTribe} currentUser={currentUser} userMap={userMap} onSendMessage={handleSendTribeMessage} onDeleteMessage={handleDeleteTribeMessage} onDeleteTribe={handleDeleteTribe} onBack={() => setActiveNavItem('Tribes')} onViewProfile={handleViewProfile} onEditTribe={(tribe) => setEditingTribe(tribe)} onJoinToggle={handleJoinToggle} />;
             case 'Notifications':
-                return <NotificationsPage notifications={notifications} onViewProfile={handleViewProfile} onViewMessage={handleStartConversation} onViewPost={handleViewPost} onViewTribe={handleViewTribe} />;
+                return <NotificationsPage notifications={notifications} allTribes={tribes} onViewProfile={handleViewProfile} onViewMessage={handleStartConversation} onViewPost={handleViewPost} onViewTribe={handleViewTribe} onViewStory={handleViewUserStories} />;
             case 'Profile':
                 if (!viewedUser || (currentUser.blockedUsers || []).includes(viewedUser.id) || (viewedUser.blockedUsers || []).includes(currentUser.id)) {
                      return <div className="text-center p-8">User not found or is blocked.</div>;
                 }
                 const userPosts = visiblePosts.filter(p => p.author.id === viewedUser.id);
-                // FIX: Corrected a typo in the `onViewUserStories` prop. The handler function is `handleViewUserStories`.
-                return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} onImageSelected={setImageToCrop} />;
+                return <ProfilePage user={viewedUser} allUsers={users} visibleUsers={visibleUsers} allTribes={tribes} posts={userPosts} currentUser={currentUser} onLikePost={handleLikePost} onCommentPost={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onUpdateUser={handleUpdateUser} onAddPost={handleAddPost} isPosting={isCreatingPost} onToggleFollow={handleToggleFollow} onStartConversation={handleStartConversation} onNavigate={handleSelectItem} onSharePost={handleSharePost} onOpenStoryCreator={() => setIsCreatingStory(true)} myStories={myStories} onViewUserStories={handleViewUserStories} />;
             case 'Settings':
                  return <SettingsPage currentUser={currentUser} onLogout={logout} onDeleteAccount={handleDeleteAccount} onToggleBlock={handleToggleBlock} allUsers={users} onBack={() => handleSelectItem('Profile')} />;
             default:
@@ -1384,7 +1388,8 @@ const App: React.FC = () => {
             {editingTribe && <EditTribeModal tribe={editingTribe} onClose={() => setEditingTribe(null)} onSave={handleEditTribe} onDelete={handleDeleteTribe} />}
             {isCreatingStory && <StoryCreator onClose={() => setIsCreatingStory(false)} onCreate={handleCreateStory} />}
             {viewingUserStories && <StoryViewer userStories={viewingUserStories} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onClose={() => setViewingUserStories(null)} onDelete={handleDeleteStory} onLike={handleLikeStory} onSharePost={handleSharePost} />}
-            {imageToCrop && <ImageCropModal src={imageToCrop} onClose={() => setImageToCrop(null)} onCropComplete={croppedImage => handleAddPost('', croppedImage)} isPosting={isCreatingPost} />}
+            {/* FIX: Corrected a typo in a prop name, ensuring the comment handler is passed correctly. */}
+            {viewingPost && <PostViewModal post={viewingPost} currentUser={currentUser} allUsers={visibleUsers} allTribes={tribes} onLike={handleLikePost} onComment={handleCommentPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onViewProfile={handleViewProfile} onSharePost={handleSharePost} onClose={() => setViewingPost(null)} />}
         </div>
     );
 };
