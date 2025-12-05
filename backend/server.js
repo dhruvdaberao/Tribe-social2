@@ -150,6 +150,7 @@ const startServer = async () => {
       'https://tribals.vercel.app',
       'https://tribe-social2-silk.vercel.app', // Added your new frontend URL
       'http://localhost:5173',
+      'http://localhost:3000',
       'http://localhost:3000'
     ];
 
