@@ -143,7 +143,7 @@ const startServer = async () => {
     const httpServer = createServer(app);
 
     const allowedOrigins = [
-      'https://tribe-social.vercel.app',
+      'https://tribe-social2.vercel.app',
       'https://tribe-social-psi.vercel.app',
       'https://tribe-8i1h.vercel.app',
       'https://tribals.vercel.app',
