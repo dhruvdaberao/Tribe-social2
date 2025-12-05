@@ -3,9 +3,9 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAuth } from './AuthContext';
-import { Notification, Message, TribeMessage, User } from '../types';
-import { toast } from '../components/common/Toast';
+import { useAuth } from './contexts/AuthContext';
+import { Notification, Message, TribeMessage, User } from '../tribe-social2/types';
+import { toast } from '../tribe-social2/components/common/Toast';
 
 // Hardcoded the backend URL to remove the dependency on the problematic config file.
 const SOCKET_URL = 'https://tribe-social2.onrender.com';
